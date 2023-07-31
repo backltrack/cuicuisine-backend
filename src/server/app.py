@@ -33,8 +33,23 @@ def addUser(user: User = Body(...)):
     try:
         _user = jsonable_encoder(user)
         _newUser = users_collection.insert_one(_user)
+        print(type(_newUser.inserted_id))
+        print(_newUser.inserted_id)
         _createdUser = users_collection.find_one({"_id": _newUser.inserted_id})
         return _createdUser
+    except Exception as e:
+        print(e)
+        return None
+
+@app.post('/update_user', response_description="Update user", status_code=status.HTTP_201_CREATED, response_model=bool)
+def updateUser(user: dict = Body(...)):
+    try:
+        id = user['id']
+        user = User.validate(user)
+        _user = jsonable_encoder(user)
+        _user.pop('_id', None)
+        result = users_collection.update_one(filter={"_id": id}, update={'$set': _user})
+        return result.modified_count > 0
     except Exception as e:
         print(e)
         return None
@@ -67,6 +82,13 @@ def getUserBooks(id: str):
         return books
     return False
 
+@app.get('/get_user_books_id/{id}', response_model=list[str])
+def getUserBooksId(id: str):
+    books = books_collection.find({'users': id})
+    if books is not None:
+        return [book.id for book in books]
+    return False
+
 @app.delete('/delete_user/{id}', response_description="Delete user", status_code=status.HTTP_204_NO_CONTENT)
 def deleteUser(id: str):
     print(id)
@@ -80,6 +102,19 @@ def addBook(book: Book = Body(...)):
         _newBook = books_collection.insert_one(_book)
         _createdBook = books_collection.find_one({"_id": _newBook.inserted_id})
         return _createdBook
+    except Exception as e:
+        print(e)
+        return None
+    
+@app.post('/update_book', response_description="Update book", status_code=status.HTTP_201_CREATED, response_model=bool)
+def updateBook(book: dict = Body(...)):
+    try:
+        id = book['id']
+        book = Book.validate(book)
+        _book = jsonable_encoder(book)
+        _book.pop('_id', None)
+        result = books_collection.update_one(filter={"_id": id}, update={'$set': _book})
+        return result.modified_count > 0
     except Exception as e:
         print(e)
         return None
@@ -116,6 +151,13 @@ def getBookRecipes(id: str):
             recipes.append(recipe)
         return recipes
 
+@app.get('/get_book_recipes_id/{id}', response_model=list[str]|None)
+def getBookRecipesId(id: str):
+    book = books_collection.find_one({'_id': id})
+    if book is not None:
+        recipe_uids = book['recipeUids']
+        return recipe_uids
+
 @app.delete('/delete_book/{id}', response_description="Delete book", status_code=status.HTTP_204_NO_CONTENT)
 def deleteUser(id: str):
     print(id)
@@ -130,6 +172,21 @@ def addRecipe(recipe: Recipe = Body(...)):
         _newRecipe = recipes_collection.insert_one(_recipe)
         _createdRecipe = recipes_collection.find_one({"_id": _newRecipe.inserted_id})
         return _createdRecipe
+    except Exception as e:
+        print(e)
+        return None
+
+@app.post('/update_recipe', response_description="Update recipe", status_code=status.HTTP_201_CREATED, response_model=bool)
+def updateRecipe(recipe: dict = Body(...)):
+    try:
+        id = recipe['id']
+        recipe = Recipe.validate(recipe)
+        _recipe = jsonable_encoder(recipe)
+        _recipe.pop('_id', None)
+        print(_recipe)
+        print(id)
+        result = recipes_collection.update_one(filter={"_id": id}, update={'$set': _recipe})
+        return result.modified_count > 0
     except Exception as e:
         print(e)
         return None

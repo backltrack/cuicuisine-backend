@@ -54,7 +54,7 @@ class Recipe(BaseModel):
     waitingTime: int
     tags: list[str]
     persons: int
-    recipeIngrdients: list[Ingredient]
+    recipeIngredients: list[Ingredient]
     steps: list[RecipeStep]
     variants: list[Variant]
     creationDate: datetime
