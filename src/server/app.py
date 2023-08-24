@@ -1,6 +1,8 @@
 from pymongo import MongoClient
 from fastapi.encoders import jsonable_encoder
-from fastapi import FastAPI, status, Body, Request
+from fastapi import FastAPI, status, Body, Request, Depends
+from fastapi.security import OAuth2PasswordBearer
+from typing import Annotated
 
 try:
     from server.model import *
@@ -19,6 +21,7 @@ recipes_collection = db['recipes']
 # Instantiate the FastAPI
 app = FastAPI()
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="bbd867e7-bb3a-40bf-af02-6d8ed9a1d168")
 
 # root
 @app.get("/", tags=["Root"])
@@ -63,9 +66,10 @@ def getUser(id: str):
     
 @app.get('/get_user_last_update/{id}', response_model=datetime|None)
 def getUserLastUpdate(id: str):
-    user = users_collection.find_one({'firebaseId': id})
+    user = users_collection.find_one({'uid': id})
     print(user)
     if user is not None:
+        print(user['lastUpdate'])
         return user['lastUpdate']
 
 @app.get('/user_exists/{id}', response_model=bool)
@@ -92,7 +96,7 @@ def getUserBooksId(id: str):
 @app.delete('/delete_user/{id}', response_description="Delete user", status_code=status.HTTP_204_NO_CONTENT)
 def deleteUser(id: str):
     print(id)
-    users_collection.delete_one({'firebaseId': id})
+    users_collection.delete_one({'uid': id})
 
 ## Books
 @app.post('/add_book', response_description="Create a new book", status_code=status.HTTP_201_CREATED, response_model=Book)

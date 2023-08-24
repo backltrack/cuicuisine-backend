@@ -2,3 +2,5 @@ pymongo
 fastapi
 pydantic
 uvicorn
+python-jose
+passlib

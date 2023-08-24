@@ -1,6 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.testclient import TestClient
 from fastapi.encoders import jsonable_encoder
+from fastapi.security import OAuth2PasswordBearer
+from typing import Annotated
+
 from app import app
 from model import *
 from datetime import datetime
