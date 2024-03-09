@@ -1,16 +1,32 @@
 #!/usr/bin/python3
 
+from typing import Annotated, Union
+from fastapi.param_functions import Form, Doc
+
 from pydantic import BaseModel, Field, EmailStr
 from datetime import datetime
 import uuid
 
+class Token(BaseModel):
+    access_token: str
+    #expires_in: int
+    refresh_token: str
+    #refresh_token_expires_in: int
+    token_type: str
+
+class TokenData(BaseModel):
+    id: str | None = None
+
 class User(BaseModel):
     id: str = Field(default_factory=uuid.uuid4, alias="_id")
-    firebaseId: str
     name: str
     email: str
     favoriteRecipes: list[str] | None = []
     lastUpdate: datetime
+
+class DbUser(User):
+    disabled: bool = False
+    hashed_password: str
 
 class Book(BaseModel):
     id: str = Field(default_factory=uuid.uuid4, alias="_id")
@@ -53,10 +69,65 @@ class Recipe(BaseModel):
     cookingTime: int
     waitingTime: int
     tags: list[str]
-    persons: int
+    quantity: int
+    quantityType: str
     recipeIngredients: list[Ingredient]
     steps: list[RecipeStep]
     variants: list[Variant]
     creationDate: datetime
     lastUpdate: datetime
 
+class MyOAuth2RefreshRequestForm:
+    def __init__(
+        self,
+        *,
+        grant_type: Annotated[
+            Union[str, None],
+            Form(pattern="refresh_token"),
+            Doc(
+                """
+                The OAuth2 spec says it is required and MUST be the fixed string
+                "password". Nevertheless, this dependency class is permissive and
+                allows not passing it. If you want to enforce it, use instead the
+                `OAuth2PasswordRequestFormStrict` dependency.
+                """
+            ),
+        ] = None,
+        refresh_token: Annotated[
+            str,
+            Form(),
+            Doc(
+                """
+                `username` string. The OAuth2 spec requires the exact field name
+                `username`.
+                """
+            ),
+        ],
+        client_id: Annotated[
+            Union[str, None],
+            Form(),
+            Doc(
+                """
+                If there's a `client_id`, it can be sent as part of the form fields.
+                But the OAuth2 specification recommends sending the `client_id` and
+                `client_secret` (if any) using HTTP Basic auth.
+                """
+            ),
+        ] = None,
+        client_secret: Annotated[
+            Union[str, None],
+            Form(),
+            Doc(
+                """
+                If there's a `client_password` (and a `client_id`), they can be sent
+                as part of the form fields. But the OAuth2 specification recommends
+                sending the `client_id` and `client_secret` (if any) using HTTP Basic
+                auth.
+                """
+            ),
+        ] = None,
+    ):
+        self.grant_type = grant_type
+        self.refresh_token = refresh_token
+        self.client_id = client_id
+        self.client_secret = client_secret

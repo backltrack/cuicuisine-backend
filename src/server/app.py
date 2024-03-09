@@ -1,25 +1,180 @@
-from pymongo import MongoClient
 from fastapi.encoders import jsonable_encoder
-from fastapi import FastAPI, status, Body, Request, Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import FastAPI, HTTPException, status, Body, Request, Depends
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+
 from typing import Annotated
+
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+
+from datetime import timedelta, datetime
 
 try:
     from server.model import *
+    from server.mongo import *
 except:
     from model import *
+    from mongo import *
+
+# to get a string like this run:
+# openssl rand -hex 32
+SECRET_KEY_ACCESS = "b8b24km3big8wx83fz49hswuwrsdzvw7db4c56upjwxvb89hukx342fnh5crnitv"
+SECRET_KEY_REFRESH = "ma4sh6puq5cyq7xgw798472pqdyshs2cxo4uj9xjsk62smq4epuyctzw929te735"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_SECONDES = 15
+REFRESH_TOKEN_EXPIRE_DAYS = 365
 
 # LOAD COLLECTIONS
 
-client = MongoClient('localhost', 27017)
-db = client['family-recipes']
+# client = MongoClient('localhost', 27017)
+# db = client['cuicuisine']
 
-users_collection = db['users']
-books_collection = db['books']
-recipes_collection = db['recipes']
+# users_collection = db['users']
+# books_collection = db['books']
+# recipes_collection = db['recipes']
 
 # Instantiate the FastAPI
 app = FastAPI()
+
+# Security
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+def authenticate_user(email: str, password: str):
+    print(email)
+    user = getUserByEmail(email=email)
+    if not user:
+        return False
+    if not verify_password(password, user.hashed_password) or user.disabled:
+        return False
+    return user
+
+def validate_access_token(token: str):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY_ACCESS, algorithms=[ALGORITHM])
+        id: str = payload.get("sub")
+        return id
+    except JWTError:
+        raise credentials_exception
+
+def validate_refresh_token(token: str):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY_REFRESH, algorithms=[ALGORITHM])
+        exp: datetime = datetime.fromtimestamp(payload.get("exp"))
+        id: str = payload.get("sub")
+        return id, exp
+    except JWTError:
+        raise credentials_exception
+
+# Token gesture
+def create_access_token(data: dict | None = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(seconds=ACCESS_TOKEN_EXPIRE_SECONDES)
+    to_encode.update({"exp": expire})
+    print(to_encode)
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY_ACCESS, algorithm=ALGORITHM)
+    return encoded_jwt, expire
+
+def create_refresh_token(data: dict | None = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire})
+    print(to_encode)
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY_REFRESH, algorithm=ALGORITHM)
+    print(encoded_jwt)
+    return encoded_jwt, expire
+
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        id = validate_access_token(token)
+    except JWTError:
+        raise credentials_exception
+    user = getUserById(id=id)
+    print("id=" + str(id))
+    if user is None:
+        raise credentials_exception
+    return user
+
+async def get_current_active_user(
+    current_user: Annotated[User, Depends(get_current_user)]
+):
+    if current_user.disabled:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
+
+
+# routes
+@app.get("/test_connexion", response_model=bool)
+async def test_connection():
+    return True
+
+@app.post("/token", response_model=Token)
+async def login_for_access_token(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+):
+    user = authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    access_token, access_token_expiration_time = create_access_token(data={"sub": user.id})
+    refresh_token, refresh_token_expiration_time = create_refresh_token(data={"sub": user.id})
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"} #, "expires_in": int(access_token_expiration_time.timestamp()), "refresh_token_expires_in": int(refresh_token_expiration_time.timestamp())
+
+@app.post("/refresh_token", response_model=Token)
+async def refresh_access_token(form_data: Annotated[MyOAuth2RefreshRequestForm, Depends()]):
+    id, exp = validate_refresh_token(form_data.refresh_token)
+    access_token, access_token_expiration_time = create_access_token(data={"sub": id})
+    return {"access_token": access_token, "refresh_token": form_data.refresh_token, "token_type": "bearer"} #, "expires_in": int(access_token_expiration_time.timestamp()), "refresh_token_expires_in": int(exp.timestamp())}
+
+@app.get("/users/me/", response_model=User)
+async def read_users_me(
+    current_user: Annotated[User, Depends(get_current_active_user)]
+):
+    return current_user
+
+@app.post('/users/me/update', response_description="Update user", status_code=status.HTTP_201_CREATED, response_model=bool)
+async def update_user_me(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    user_data: dict = Body(...)
+):
+    updated_user = updateUser(current_user.id, user_data)
+    return updated_user is not None
+
+@app.get('/users/me/lastupdate', response_model=datetime|None)
+async def read_user_me_last_update(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+) :
+    return current_user.lastUpdate
+
+
+
+
+###################
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="bbd867e7-bb3a-40bf-af02-6d8ed9a1d168")
 
@@ -66,7 +221,7 @@ def getUser(id: str):
     
 @app.get('/get_user_last_update/{id}', response_model=datetime|None)
 def getUserLastUpdate(id: str):
-    user = users_collection.find_one({'uid': id})
+    user = users_collection.find_one({'firebaseId': id})
     print(user)
     if user is not None:
         print(user['lastUpdate'])
