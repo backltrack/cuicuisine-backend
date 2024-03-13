@@ -1,9 +1,11 @@
 #!/usr/bin/python3
 
 from typing import Annotated, Union
+from typing_extensions import Annotated
 from fastapi.param_functions import Form, Doc
 
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field
+from pydantic_mongo import AbstractRepository, ObjectIdField
 from datetime import datetime
 import uuid
 
@@ -17,8 +19,9 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     id: str | None = None
 
+
 class User(BaseModel):
-    id: str = Field(default_factory=uuid.uuid4, alias="_id")
+    id: ObjectIdField = None
     name: str
     email: str
     favoriteRecipes: list[str] | None = []
@@ -76,6 +79,20 @@ class Recipe(BaseModel):
     variants: list[Variant]
     creationDate: datetime
     lastUpdate: datetime
+
+
+class UserRepository(AbstractRepository[DbUser]):
+   class Meta:
+      collection_name = 'users'
+
+class BookRepository(AbstractRepository[Book]):
+   class Meta:
+      collection_name = 'books'
+
+class RecipeRepository(AbstractRepository[Recipe]):
+   class Meta:
+      collection_name = 'recipes'
+
 
 class MyOAuth2RefreshRequestForm:
     def __init__(

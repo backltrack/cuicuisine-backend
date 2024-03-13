@@ -1,6 +1,8 @@
 pymongo
 fastapi
 pydantic
+pydantic[email]
+pydantic-mongo
 uvicorn
 python-jose
 passlib
