@@ -127,7 +127,6 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     except JWTError:
         raise credentials_exception
     user = getUserById(id=id)
-    print("id=" + str(id))
     if user is None:
         raise credentials_exception
     return user
@@ -223,218 +222,103 @@ async def read_users_me(
 @app.post('/users/me/update', response_description="Update user", status_code=status.HTTP_201_CREATED, response_model=bool)
 async def update_user_me(
     current_user: Annotated[User, Depends(get_current_active_user)],
-    user_data: dict = Body(...)
+    form_data: Annotated[UpdateUserRequestForm, Depends()]
 ):
-    updated_user = updateUser(current_user.id, user_data)
+    data = form_data.dump()
+    print(data)
+    
+    updated_user = updateUser(str(current_user.id), data)
     return updated_user is not None
+    
+    return False
 
-@app.get('/users/me/lastupdate', response_model=datetime|None)
-async def read_user_me_last_update(
+
+@app.get('/books/get/{id}', response_model=Book|None)
+async def get_book(
     current_user: Annotated[User, Depends(get_current_active_user)],
-) :
-    return current_user.lastUpdate
+    id: str
+):
+    print(id)
+    print(current_user)
+    book: Book = getBookById(id)
+    print(f"{book}")
+    if book:
+        if str(current_user.id) in book.users:
+            return book
 
+@app.post('/books/update', response_description="Update book", status_code=status.HTTP_201_CREATED, response_model=bool)
+async def update_book(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    form_data: Annotated[UpdateBookRequestForm, Depends()]
+):
+    data = form_data.dump()
+    print(data)
+    id = data.pop('id')
+    print(id)
 
+    book = getBookById(id)
+    print(book)
 
-
-###################
-
-# oauth2_scheme = OAuth2PasswordBearer(tokenUrl="bbd867e7-bb3a-40bf-af02-6d8ed9a1d168")
-
-# # root
-# @app.get("/", tags=["Root"])
-# async def readRoot():
-#     return {"message": "Welcome to this fantastic app!"}
-
-
-# # Define DB Functions
-# ## Users
-# @app.post('/add_user', response_description="Create a new user", status_code=status.HTTP_201_CREATED, response_model=User)
-# def addUser(user: User = Body(...)):
-#     try:
-#         _user = jsonable_encoder(user)
-#         _newUser = users_collection.insert_one(_user)
-#         print(type(_newUser.inserted_id))
-#         print(_newUser.inserted_id)
-#         _createdUser = users_collection.find_one({"_id": _newUser.inserted_id})
-#         return _createdUser
-#     except Exception as e:
-#         print(e)
-#         return None
-
-# @app.post('/update_user', response_description="Update user", status_code=status.HTTP_201_CREATED, response_model=bool)
-# def updateUser(user: dict = Body(...)):
-#     try:
-#         id = user['id']
-#         user = User.validate(user)
-#         _user = jsonable_encoder(user)
-#         _user.pop('_id', None)
-#         result = users_collection.update_one(filter={"_id": id}, update={'$set': _user})
-#         return result.modified_count > 0
-#     except Exception as e:
-#         print(e)
-#         return None
-
-# @app.get('/get_user/{id}', response_model=User|None)
-# def getUser(id: str):
-#     user = users_collection.find_one({'firebaseId': id})
-#     print(user)
-#     if user is not None:
-#         return user
+    if book:
+        if str(current_user.id) in book.users:
+            print(1)
+            if book.access[str(current_user.id)] > 1:
+                print(2)
+                result = updateBook(id, data)
+                return result
     
-# @app.get('/get_user_last_update/{id}', response_model=datetime|None)
-# def getUserLastUpdate(id: str):
-#     user = users_collection.find_one({'firebaseId': id})
-#     print(user)
-#     if user is not None:
-#         print(user['lastUpdate'])
-#         return user['lastUpdate']
+    return False
 
-# @app.get('/user_exists/{id}', response_model=bool)
-# def userExists(id: str):
-#     user = users_collection.find_one({'firebaseId': id})
-#     if user is not None:
-#         return True
-#     return False
-
-# @app.get('/get_user_books/{id}', response_model=list[Book])
-# def getUserBooks(id: str):
-#     books = books_collection.find({'users': id})
-#     if books is not None:
-#         return books
-#     return False
-
-# @app.get('/get_user_books_id/{id}', response_model=list[str])
-# def getUserBooksId(id: str):
-#     books = books_collection.find({'users': id})
-#     if books is not None:
-#         return [book.id for book in books]
-#     return False
-
-# @app.delete('/delete_user/{id}', response_description="Delete user", status_code=status.HTTP_204_NO_CONTENT)
-# def deleteUser(id: str):
-#     print(id)
-#     users_collection.delete_one({'uid': id})
-
-# ## Books
-# @app.post('/add_book', response_description="Create a new book", status_code=status.HTTP_201_CREATED, response_model=Book)
-# def addBook(book: Book = Body(...)):
-#     try:
-#         _book = jsonable_encoder(book)
-#         _newBook = books_collection.insert_one(_book)
-#         _createdBook = books_collection.find_one({"_id": _newBook.inserted_id})
-#         return _createdBook
-#     except Exception as e:
-#         print(e)
-#         return None
+@app.put('/books/create', response_description="Create book", status_code=status.HTTP_201_CREATED, response_model=Book|None)
+async def create_book(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    form_data: Annotated[AddBookRequestForm, Depends()]
+):
     
-# @app.post('/update_book', response_description="Update book", status_code=status.HTTP_201_CREATED, response_model=bool)
-# def updateBook(book: dict = Body(...)):
-#     try:
-#         id = book['id']
-#         book = Book.validate(book)
-#         _book = jsonable_encoder(book)
-#         _book.pop('_id', None)
-#         result = books_collection.update_one(filter={"_id": id}, update={'$set': _book})
-#         return result.modified_count > 0
-#     except Exception as e:
-#         print(e)
-#         return None
-
-# @app.get('/get_book/{id}', response_model=Book|None)
-# def getBook(id: str):
-#     book = books_collection.find_one({'_id': id})
-#     print(book)
-#     if book is not None:
-#         return book
+    book = addBook(
+        name=form_data.name,
+        recipeUids=[],
+        users=[str(current_user.id)],
+        access={str(current_user.id): 2}
+    )
     
-# @app.get('/get_book_last_update/{id}', response_model=datetime|None)
-# def getBookLastUpdate(id: str):
-#     book = books_collection.find_one({'_id': id})
-#     print(book)
-#     if book is not None:
-#         return book['lastUpdate']
-
-# @app.get('/book_exists/{id}', response_model=bool)
-# def bookExists(id: str):
-#     book = books_collection.find_one({'_id': id})
-#     if book is not None:
-#         return True
-#     return False
-
-# @app.get('/get_book_recipes/{id}', response_model=list[Recipe]|None)
-# def getBookRecipes(id: str):
-#     book = books_collection.find_one({'_id': id})
-#     if book is not None:
-#         recipe_uids = book['recipeUids']
-#         recipes = []
-#         for uid in recipe_uids:
-#             recipe = recipes_collection.find_one({'_id': uid})
-#             recipes.append(recipe)
-#         return recipes
-
-# @app.get('/get_book_recipes_id/{id}', response_model=list[str]|None)
-# def getBookRecipesId(id: str):
-#     book = books_collection.find_one({'_id': id})
-#     if book is not None:
-#         recipe_uids = book['recipeUids']
-#         return recipe_uids
-
-# @app.delete('/delete_book/{id}', response_description="Delete book", status_code=status.HTTP_204_NO_CONTENT)
-# def deleteUser(id: str):
-#     print(id)
-#     books_collection.delete_one({'_book': id})
+    return book
 
 
-# ## Recipes
-# @app.post('/add_recipe', response_description="Create a new recipe", status_code=status.HTTP_201_CREATED, response_model=Recipe)
-# def addRecipe(recipe: Recipe = Body(...)):
-#     try:
-#         _recipe = jsonable_encoder(recipe)
-#         _newRecipe = recipes_collection.insert_one(_recipe)
-#         _createdRecipe = recipes_collection.find_one({"_id": _newRecipe.inserted_id})
-#         return _createdRecipe
-#     except Exception as e:
-#         print(e)
-#         return None
+@app.get('/recipes/get/{id}', response_model=Recipe|None)
+async def get_recipe(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    id: str
+):
+    recipe: Recipe = getRecipeById(id)
 
-# @app.post('/update_recipe', response_description="Update recipe", status_code=status.HTTP_201_CREATED, response_model=bool)
-# def updateRecipe(recipe: dict = Body(...)):
-#     try:
-#         id = recipe['id']
-#         recipe = Recipe.validate(recipe)
-#         _recipe = jsonable_encoder(recipe)
-#         _recipe.pop('_id', None)
-#         print(_recipe)
-#         print(id)
-#         result = recipes_collection.update_one(filter={"_id": id}, update={'$set': _recipe})
-#         return result.modified_count > 0
-#     except Exception as e:
-#         print(e)
-#         return None
+    if recipe:
+        access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
+        if access and access > 0:
+            print(access)
+            return recipe
 
-# @app.get('/get_recipe/{id}', response_model=Recipe|None)
-# def getRecipe(id: str):
-#     recipe = recipes_collection.find_one({'_id': id})
-#     print(recipe)
-#     if recipe is not None:
-#         return recipe
+@app.post('/recipes/update', response_description="Update recipe", status_code=status.HTTP_201_CREATED, response_model=bool)
+async def update_recipe(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    form_data: Annotated[UpdateRecipeRequestForm, Depends()]
+):
+    data = form_data.dump()
+    id = data.pop('id')
+
+    access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
+    if access > 1:
+        result = updateRecipe(id, data)
+        return result
     
-# @app.get('/get_recipe_last_update/{id}', response_model=datetime|None)
-# def getRecipeLastUpdate(id: str):
-#     recipe = recipes_collection.find_one({'_id': id})
-#     print(recipe)
-#     if recipe is not None:
-#         return recipe['lastUpdate']
+    return False
 
-# @app.get('/recipe_exists/{id}', response_model=bool)
-# def recipeExists(id: str):
-#     recipe = recipes_collection.find_one({'_id': id})
-#     if recipe is not None:
-#         return True
-#     return False
-
-# @app.delete('/delete_recipe/{id}', response_description="Delete recipe", status_code=status.HTTP_204_NO_CONTENT)
-# def deleteUser(id: str):
-#     print(id)
-#     recipes_collection.delete_one({'_id': id})
+@app.put('/recipes/create', response_description="Create recipe", status_code=status.HTTP_201_CREATED, response_model=Recipe|None)
+async def create_recipe(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    form_data: Annotated[AddRecipeRequestForm, Depends()]
+):
+    
+    recipe = addRecipe(name=form_data.name)
+    
+    return recipe

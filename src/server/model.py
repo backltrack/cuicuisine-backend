@@ -7,7 +7,19 @@ from fastapi.param_functions import Form, Doc
 from pydantic import BaseModel, Field
 from pydantic_mongo import AbstractRepository, ObjectIdField
 from datetime import datetime
-import uuid
+
+class RequestFormBase:
+    def dump(self, exclude_empty=True):
+        data = self.__dict__.copy()
+        to_exclude = []
+        if exclude_empty:
+            for key in data.keys():
+                if not data[key]:
+                    to_exclude.append(key)
+            for key in to_exclude:
+                data.pop(key)
+        return data
+
 
 class Token(BaseModel):
     access_token: str
@@ -32,32 +44,32 @@ class DbUser(User):
     hashed_password: str
 
 class Book(BaseModel):
-    id: str = Field(default_factory=uuid.uuid4, alias="_id")
+    id: ObjectIdField = None
     name: str
-    recipeUids: list[str]
+    recipeUids: list[str] = []
     users: list[str]
     access: dict[str, int] ## to change
     lastUpdate: datetime
 
 class Ingredient(BaseModel):
-    id: str = Field(default_factory=uuid.uuid4, alias="_id")
+    id: ObjectIdField = None
     name: str
     quantity: float
     unit: str
     density: float | None = 0
 
 class Tag(BaseModel):
-    id: str = Field(default_factory=uuid.uuid4, alias="_id")
+    id: ObjectIdField = None
     name: str
     index: int
 
 class RecipeStep(BaseModel):
-    id: str = Field(default_factory=uuid.uuid4, alias="_id")
+    id: ObjectIdField = None
     step: str
     time: int
 
 class Variant(BaseModel):
-    id: str = Field(default_factory=uuid.uuid4, alias="_id")
+    id: ObjectIdField = None
     userId: str
     variant: str
 
@@ -65,18 +77,18 @@ class Access(BaseModel):
     pass
 
 class Recipe(BaseModel):
-    id: str = Field(default_factory=uuid.uuid4, alias="_id")
+    id: ObjectIdField = None
     name: str
-    pictures: list[str]
-    preparationTime: int
-    cookingTime: int
-    waitingTime: int
-    tags: list[str]
-    quantity: int
-    quantityType: str
-    recipeIngredients: list[Ingredient]
-    steps: list[RecipeStep]
-    variants: list[Variant]
+    pictures: list[str] = []
+    preparationTime: int = 0
+    cookingTime: int = 0
+    waitingTime: int = 0
+    tags: list[str] = []
+    quantity: int = 2
+    quantityType: str = "personnes"
+    recipeIngredients: list[Ingredient] = []
+    steps: list[RecipeStep] = []
+    variants: list[Variant] = []
     creationDate: datetime
     lastUpdate: datetime
 
@@ -93,6 +105,145 @@ class RecipeRepository(AbstractRepository[Recipe]):
    class Meta:
       collection_name = 'recipes'
 
+class UpdateUserRequestForm(RequestFormBase):
+    def __init__(
+        self,
+        *,
+        name: Annotated[
+            Union[str, None],
+            Form()
+        ] = None,
+        email: Annotated[
+            Union[str, None],
+            Form()
+        ] = None,
+        favoriteRecipes: Annotated[
+            Union[list[str], None],
+            Form()
+        ] = None
+    ):
+        self.name = name
+        self.email = email
+        self.favoriteRecipes = favoriteRecipes
+
+class AddBookRequestForm:
+    def __init__(
+        self,
+        *,
+        name: Annotated[
+            str,
+            Form()
+        ]
+    ):
+        self.name = name
+
+class UpdateBookRequestForm(RequestFormBase):
+    def __init__(
+        self,
+        *,
+        id: Annotated[
+            str,
+            Form()
+        ],
+        name: Annotated[
+            Union[str, None],
+            Form()
+        ] = None,
+        recipeUids: Annotated[
+            Union[list[str], None],
+            Doc("")
+        ] = None,
+        users: Annotated[
+            Union[list[str], None],
+            Form()
+        ] = None,
+        access: Annotated[
+            Union[dict[str, int], None],
+            Form(),
+        ] = None
+    ):
+        self.id = id
+        self.name = name
+        self.recipeUids = recipeUids
+        self.users = users
+        self.access = access
+
+class AddRecipeRequestForm:
+    def __init__(
+        self,
+        *,
+        name: Annotated[
+            str,
+            Form()
+        ]
+    ):
+        self.name = name
+
+class UpdateRecipeRequestForm(RequestFormBase):
+    def __init__(
+        self,
+        *,
+        id: Annotated[
+            str,
+            Form()
+        ],
+        name: Annotated[
+            Union[str, None],
+            Form()
+        ] = None,
+        pictures: Annotated[
+            Union[list[str], None],
+            Form()
+        ] = None,
+        preparationTime: Annotated[
+            Union[int, None],
+            Form()
+        ] = None,
+        cookingTime: Annotated[
+            Union[int, None],
+            Form()
+        ] = None,
+        waitingTime: Annotated[
+            Union[int, None],
+            Form()
+        ] = None,
+        tags: Annotated[
+            Union[list[str], None],
+            Form()
+        ] = None,
+        quantity: Annotated[
+            Union[int, None],
+            Form()
+        ] = None,
+        quantityType: Annotated[
+            Union[str, None],
+            Form()
+        ] = None,
+        recipeIngredients: Annotated[
+            Union[list[Ingredient], None], 
+            Form()
+        ] = None,
+        steps: Annotated[
+            Union[list[RecipeStep], None],
+            Form()
+        ] = None,
+        variants: Annotated[
+            Union[list[Variant], None],
+            Form()
+        ] = None
+    ):
+        self.id = id
+        self.name = name
+        self.pictures = pictures
+        self.preparationTime = preparationTime
+        self.cookingTime = cookingTime
+        self.waitingTime = waitingTime
+        self.tags = tags
+        self.quantity = quantity
+        self.quantityType = quantityType
+        self.recipeIngredients = recipeIngredients
+        self.steps = steps
+        self.variants = variants
 
 class MyOAuth2RefreshRequestForm:
     def __init__(
