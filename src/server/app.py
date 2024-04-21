@@ -246,24 +246,19 @@ async def get_book(
         if str(current_user.id) in book.users:
             return book
 
-@app.post('/books/update', response_description="Update book", status_code=status.HTTP_201_CREATED, response_model=bool)
+@app.post('/books/update', response_description="Update book", status_code=status.HTTP_200_OK, response_model=bool)
 async def update_book(
     current_user: Annotated[User, Depends(get_current_active_user)],
     form_data: Annotated[UpdateBookRequestForm, Depends()]
 ):
     data = form_data.dump()
-    print(data)
     id = data.pop('id')
-    print(id)
 
     book = getBookById(id)
-    print(book)
 
     if book:
         if str(current_user.id) in book.users:
-            print(1)
             if book.access[str(current_user.id)] > 1:
-                print(2)
                 result = updateBook(id, data)
                 return result
     
@@ -298,27 +293,63 @@ async def get_recipe(
             print(access)
             return recipe
 
-@app.post('/recipes/update', response_description="Update recipe", status_code=status.HTTP_201_CREATED, response_model=bool)
+@app.post('/recipes/update', response_description="Update recipe", status_code=status.HTTP_200_OK, response_model=bool)
 async def update_recipe(
     current_user: Annotated[User, Depends(get_current_active_user)],
     form_data: Annotated[UpdateRecipeRequestForm, Depends()]
 ):
     data = form_data.dump()
     id = data.pop('id')
+    print(id)
+    print(data)
+
+    print(current_user)
 
     access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
-    if access > 1:
+    print(access)
+    if access and access > 1:
         result = updateRecipe(id, data)
         return result
     
     return False
+
+#testing
+# @app.post('/recipes/update', response_description="Update recipe", status_code=status.HTTP_200_OK, response_model=bool)
+# async def update_recipe(
+#     current_user: Annotated[User, Depends(get_current_active_user)],
+#     data: UpdateRecipeRequest
+# ):
+#     data = data.dump()
+#     id = data.pop('id')
+#     print(id)
+#     print(data)
+
+#     print(current_user)
+
+#     access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
+#     print(access)
+#     if access and access > 1:
+#         result = updateRecipe(id, data)
+#         return result
+    
+#     return False
 
 @app.put('/recipes/create', response_description="Create recipe", status_code=status.HTTP_201_CREATED, response_model=Recipe|None)
 async def create_recipe(
     current_user: Annotated[User, Depends(get_current_active_user)],
     form_data: Annotated[AddRecipeRequestForm, Depends()]
 ):
+    book = getBookById(form_data.bookId)
+    print(book)
+    print(current_user)
+
+    if book and str(current_user.id) in book.users:
+        if book.access[str(current_user.id)] > 0:
+            recipe = addRecipe(name=form_data.name)
+
+            book.recipeUids.append(str(recipe.id))
+            updateBook(book.id, {'recipeUids': book.recipeUids})
+
+            return recipe
     
-    recipe = addRecipe(name=form_data.name)
-    
-    return recipe
+    return None

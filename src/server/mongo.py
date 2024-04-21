@@ -51,7 +51,6 @@ def addUser(name: str, email: str, password: str) -> User:
         print(e)
 
 
-
 def getBookById(id: str) -> Book:
     book = books_collection.find_one_by_id(ObjectId(id))
     if isinstance(book, Book):
@@ -119,17 +118,17 @@ def updateRecipe(id: str, data: dict):
         return None
 
 
-def getRecipeBooks(recipeId: str):
+def getRecipeBook(recipeId: str):
     try:
-        books = books_collection.find_by({'recipeUids': {'$elemMatch': {'$eq': str(recipeId)}}})
-        return books
+        book = books_collection.find_one_by({'recipeUids': recipeId})
+        return book
     except Exception as e:
         print(e)
 
 def getRecipeUserAccess(userId: str, recipeId: str) -> int|None:
     try:
-        books = getRecipeBooks(recipeId)
-        for book in books:
+        book = getRecipeBook(recipeId)
+        if book:
             if str(userId) in book.users:
                 return book.access[str(userId)]
 

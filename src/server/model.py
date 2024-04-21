@@ -151,7 +151,7 @@ class UpdateBookRequestForm(RequestFormBase):
         ] = None,
         recipeUids: Annotated[
             Union[list[str], None],
-            Doc("")
+            Doc("test")
         ] = None,
         users: Annotated[
             Union[list[str], None],
@@ -175,9 +175,14 @@ class AddRecipeRequestForm:
         name: Annotated[
             str,
             Form()
+        ],
+        bookId: Annotated[
+            str,
+            Form()
         ]
     ):
         self.name = name
+        self.bookId = bookId
 
 class UpdateRecipeRequestForm(RequestFormBase):
     def __init__(
@@ -245,6 +250,38 @@ class UpdateRecipeRequestForm(RequestFormBase):
         self.steps = steps
         self.variants = variants
 
+
+#testing
+# class UpdateRecipeRequest(RequestFormBase, BaseModel):
+#     def __init__(
+#         self,
+#         *,
+#         id: str,
+#         name: str | None = None,
+#         pictures: list[str] | None = None,
+#         preparationTime: int | None = None,
+#         cookingTime: int | None = None,
+#         waitingTime: int | None = None,
+#         tags: list[str] | None = None,
+#         quantity: int | None = None,
+#         quantityType: str | None = None,
+#         recipeIngredients: list[Ingredient] | None = None,
+#         steps: list[RecipeStep] | None = None,
+#         variants: list[Variant] | None = None
+#     ):
+#         self.id = id
+#         self.name = name
+#         self.pictures = pictures
+#         self.preparationTime = preparationTime
+#         self.cookingTime = cookingTime
+#         self.waitingTime = waitingTime
+#         self.tags = tags
+#         self.quantity = quantity
+#         self.quantityType = quantityType
+#         self.recipeIngredients = recipeIngredients
+#         self.steps = steps
+#         self.variants = variants
+
 class MyOAuth2RefreshRequestForm:
     def __init__(
         self,
@@ -299,3 +336,4 @@ class MyOAuth2RefreshRequestForm:
         self.refresh_token = refresh_token
         self.client_id = client_id
         self.client_secret = client_secret
+# %%
