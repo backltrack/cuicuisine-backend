@@ -222,15 +222,15 @@ async def read_users_me(
 @app.post('/users/me/update', response_description="Update user", status_code=status.HTTP_201_CREATED, response_model=bool)
 async def update_user_me(
     current_user: Annotated[User, Depends(get_current_active_user)],
-    form_data: Annotated[UpdateUserRequestForm, Depends()]
+    json_data: dict = Body(...)
 ):
-    data = form_data.dump()
+    update = UpdateUserRequest(**json_data)
+    data = update.dump()
+    id = data.pop('id')
     print(data)
     
     updated_user = updateUser(str(current_user.id), data)
     return updated_user is not None
-    
-    return False
 
 
 @app.get('/books/get/{id}', response_model=Book|None)
@@ -293,12 +293,25 @@ async def get_recipe(
             print(access)
             return recipe
 
+@app.post('/test', status_code=status.HTTP_200_OK, response_model=bool)
+async def test(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    json_data: dict = Body(...)
+):
+    print(json_data)
+    t = Test(**json_data)
+    print(t)
+    data = t.dump()
+    print(data)
+    return True
+
 @app.post('/recipes/update', response_description="Update recipe", status_code=status.HTTP_200_OK, response_model=bool)
 async def update_recipe(
     current_user: Annotated[User, Depends(get_current_active_user)],
-    form_data: Annotated[UpdateRecipeRequestForm, Depends()]
+    json_data: dict = Body(...)
 ):
-    data = form_data.dump()
+    update = UpdateRecipeRequest(**json_data)
+    data = update.dump()
     id = data.pop('id')
     print(id)
     print(data)

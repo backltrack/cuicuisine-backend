@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from pydantic_mongo import AbstractRepository, ObjectIdField
 from datetime import datetime
 
-class RequestFormBase:
+class RequestBase:
     def dump(self, exclude_empty=True):
         data = self.__dict__.copy()
         to_exclude = []
@@ -105,26 +105,11 @@ class RecipeRepository(AbstractRepository[Recipe]):
    class Meta:
       collection_name = 'recipes'
 
-class UpdateUserRequestForm(RequestFormBase):
-    def __init__(
-        self,
-        *,
-        name: Annotated[
-            Union[str, None],
-            Form()
-        ] = None,
-        email: Annotated[
-            Union[str, None],
-            Form()
-        ] = None,
-        favoriteRecipes: Annotated[
-            Union[list[str], None],
-            Form()
-        ] = None
-    ):
-        self.name = name
-        self.email = email
-        self.favoriteRecipes = favoriteRecipes
+class UpdateUserRequest(BaseModel, RequestBase):
+        id: str
+        name: str|None = None
+        email: str|None = None
+        favoriteRecipes: list[str]|None = None
 
 class AddBookRequestForm:
     def __init__(
@@ -137,7 +122,7 @@ class AddBookRequestForm:
     ):
         self.name = name
 
-class UpdateBookRequestForm(RequestFormBase):
+class UpdateBookRequestForm(RequestBase):
     def __init__(
         self,
         *,
@@ -184,71 +169,19 @@ class AddRecipeRequestForm:
         self.name = name
         self.bookId = bookId
 
-class UpdateRecipeRequestForm(RequestFormBase):
-    def __init__(
-        self,
-        *,
-        id: Annotated[
-            str,
-            Form()
-        ],
-        name: Annotated[
-            Union[str, None],
-            Form()
-        ] = None,
-        pictures: Annotated[
-            Union[list[str], None],
-            Form()
-        ] = None,
-        preparationTime: Annotated[
-            Union[int, None],
-            Form()
-        ] = None,
-        cookingTime: Annotated[
-            Union[int, None],
-            Form()
-        ] = None,
-        waitingTime: Annotated[
-            Union[int, None],
-            Form()
-        ] = None,
-        tags: Annotated[
-            Union[list[str], None],
-            Form()
-        ] = None,
-        quantity: Annotated[
-            Union[int, None],
-            Form()
-        ] = None,
-        quantityType: Annotated[
-            Union[str, None],
-            Form()
-        ] = None,
-        recipeIngredients: Annotated[
-            Union[list[Ingredient], None], 
-            Form()
-        ] = None,
-        steps: Annotated[
-            Union[list[RecipeStep], None],
-            Form()
-        ] = None,
-        variants: Annotated[
-            Union[list[Variant], None],
-            Form()
-        ] = None
-    ):
-        self.id = id
-        self.name = name
-        self.pictures = pictures
-        self.preparationTime = preparationTime
-        self.cookingTime = cookingTime
-        self.waitingTime = waitingTime
-        self.tags = tags
-        self.quantity = quantity
-        self.quantityType = quantityType
-        self.recipeIngredients = recipeIngredients
-        self.steps = steps
-        self.variants = variants
+class UpdateRecipeRequest(BaseModel, RequestBase):
+        id: str
+        name: str|None = None
+        pictures: list[str]|None = None
+        preparationTime: int|None = None,
+        cookingTime: int|None = None,
+        waitingTime: int|None = None,
+        tags: list[str]|None = None,
+        quantity: int|None = None,
+        quantityType: str|None = None,
+        recipeIngredients: list[Ingredient]|None = None,
+        steps: list[RecipeStep]|None = None,
+        variants: list[Variant]|None = None
 
 
 #testing
@@ -336,4 +269,8 @@ class MyOAuth2RefreshRequestForm:
         self.refresh_token = refresh_token
         self.client_id = client_id
         self.client_secret = client_secret
-# %%
+
+class Test(BaseModel, RequestBase):
+    tags: list[str]
+    opt: int|None = None
+    
