@@ -249,9 +249,10 @@ async def get_book(
 @app.post('/books/update', response_description="Update book", status_code=status.HTTP_200_OK, response_model=bool)
 async def update_book(
     current_user: Annotated[User, Depends(get_current_active_user)],
-    form_data: Annotated[UpdateBookRequestForm, Depends()]
+    json_data: dict = Body(...)
 ):
-    data = form_data.dump()
+    update = UpdateBookRequest(**json_data)
+    data = update.dump()
     id = data.pop('id')
 
     book = getBookById(id)

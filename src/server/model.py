@@ -122,36 +122,12 @@ class AddBookRequestForm:
     ):
         self.name = name
 
-class UpdateBookRequestForm(RequestBase):
-    def __init__(
-        self,
-        *,
-        id: Annotated[
-            str,
-            Form()
-        ],
-        name: Annotated[
-            Union[str, None],
-            Form()
-        ] = None,
-        recipeUids: Annotated[
-            Union[list[str], None],
-            Doc("test")
-        ] = None,
-        users: Annotated[
-            Union[list[str], None],
-            Form()
-        ] = None,
-        access: Annotated[
-            Union[dict[str, int], None],
-            Form(),
-        ] = None
-    ):
-        self.id = id
-        self.name = name
-        self.recipeUids = recipeUids
-        self.users = users
-        self.access = access
+class UpdateBookRequest(BaseModel, RequestBase):
+        id: str
+        name: str|None = None
+        recipeUids: list[str]|None = None
+        users: list[str]|None = None
+        access: dict[str, int]|None = None
 
 class AddRecipeRequestForm:
     def __init__(
