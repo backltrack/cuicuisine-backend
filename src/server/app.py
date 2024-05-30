@@ -219,7 +219,7 @@ async def read_users_me(
 ):
     return current_user
 
-@app.post('/users/me/update', response_description="Update user", status_code=status.HTTP_201_CREATED, response_model=bool)
+@app.post('/users/me/update', response_description="Update user", status_code=status.HTTP_200_OK, response_model=bool)
 async def update_user_me(
     current_user: Annotated[User, Depends(get_current_active_user)],
     json_data: dict = Body(...)
@@ -311,13 +311,10 @@ async def update_recipe(
     current_user: Annotated[User, Depends(get_current_active_user)],
     json_data: dict = Body(...)
 ):
+    print(json_data)
     update = UpdateRecipeRequest(**json_data)
     data = update.dump()
     id = data.pop('id')
-    print(id)
-    print(data)
-
-    print(current_user)
 
     access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
     print(access)

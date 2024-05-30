@@ -14,7 +14,7 @@ class RequestBase:
         to_exclude = []
         if exclude_empty:
             for key in data.keys():
-                if not data[key]:
+                if not data[key] or data[key] == (None,):
                     to_exclude.append(key)
             for key in to_exclude:
                 data.pop(key)
@@ -160,37 +160,6 @@ class UpdateRecipeRequest(BaseModel, RequestBase):
         variants: list[Variant]|None = None
 
 
-#testing
-# class UpdateRecipeRequest(RequestFormBase, BaseModel):
-#     def __init__(
-#         self,
-#         *,
-#         id: str,
-#         name: str | None = None,
-#         pictures: list[str] | None = None,
-#         preparationTime: int | None = None,
-#         cookingTime: int | None = None,
-#         waitingTime: int | None = None,
-#         tags: list[str] | None = None,
-#         quantity: int | None = None,
-#         quantityType: str | None = None,
-#         recipeIngredients: list[Ingredient] | None = None,
-#         steps: list[RecipeStep] | None = None,
-#         variants: list[Variant] | None = None
-#     ):
-#         self.id = id
-#         self.name = name
-#         self.pictures = pictures
-#         self.preparationTime = preparationTime
-#         self.cookingTime = cookingTime
-#         self.waitingTime = waitingTime
-#         self.tags = tags
-#         self.quantity = quantity
-#         self.quantityType = quantityType
-#         self.recipeIngredients = recipeIngredients
-#         self.steps = steps
-#         self.variants = variants
-
 class MyOAuth2RefreshRequestForm:
     def __init__(
         self,
@@ -249,4 +218,5 @@ class MyOAuth2RefreshRequestForm:
 class Test(BaseModel, RequestBase):
     tags: list[str]
     opt: int|None = None
+    new: list[dict]
     
