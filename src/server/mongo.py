@@ -30,7 +30,7 @@ def updateUser(id: str, data: dict):
         data['lastUpdate'] = datetime.now()
         
         result = users_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update={'$set': data})
-        return result.modified_count > 0
+        return result.modified_count > 0, data['lastUpdate']
     except Exception as e:
         print(e)
         return None
@@ -79,7 +79,7 @@ def updateBook(id: str, data: dict):
         
         result = books_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update={'$set': data})
         print(result.modified_count)
-        return result.modified_count > 0
+        return result.modified_count > 0, data['lastUpdate']
     except Exception as e:
         print(e)
         return None
@@ -112,7 +112,7 @@ def updateRecipe(id: str, data: dict):
         _data = jsonable_encoder(data)
 
         result = recipes_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update={'$set': _data})
-        return result.modified_count > 0
+        return result.modified_count > 0, data['lastUpdate']
     except Exception as e:
         print(e)
         return None

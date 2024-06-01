@@ -229,8 +229,12 @@ async def update_user_me(
     id = data.pop('id')
     print(data)
     
-    updated_user = updateUser(str(current_user.id), data)
-    return updated_user is not None
+    result, lastUpdate = updateUser(str(current_user.id), data)
+
+    if result:
+        return {'result': True, 'dateTime': lastUpdate}
+    
+    return {'result': False}
 
 
 @app.get('/books/get/{id}', response_model=Book|None)
@@ -260,10 +264,11 @@ async def update_book(
     if book:
         if str(current_user.id) in book.users:
             if book.access[str(current_user.id)] > 1:
-                result = updateBook(id, data)
-                return result
+                result, lastUpdate = updateBook(id, data)
+                if result:
+                    return {'result': True, 'dateTime': lastUpdate}
     
-    return False
+    return {'result': False}
 
 @app.put('/books/create', response_description="Create book", status_code=status.HTTP_201_CREATED, response_model=Book|None)
 async def create_book(
@@ -306,7 +311,7 @@ async def test(
     print(data)
     return True
 
-@app.post('/recipes/update', response_description="Update recipe", status_code=status.HTTP_200_OK, response_model=bool)
+@app.post('/recipes/update', response_description="Update recipe", status_code=status.HTTP_200_OK, response_model=dict)
 async def update_recipe(
     current_user: Annotated[User, Depends(get_current_active_user)],
     json_data: dict = Body(...)
@@ -319,10 +324,11 @@ async def update_recipe(
     access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
     print(access)
     if access and access > 1:
-        result = updateRecipe(id, data)
-        return result
+        result, lastUpdate = updateRecipe(id, data)
+        if result:
+            return {'result': True, 'dateTime': lastUpdate}
     
-    return False
+    return {'result': False}
 
 #testing
 # @app.post('/recipes/update', response_description="Update recipe", status_code=status.HTTP_200_OK, response_model=bool)
