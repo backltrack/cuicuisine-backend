@@ -213,13 +213,24 @@ async def refresh_access_token(form_data: Annotated[MyOAuth2RefreshRequestForm, 
     access_token, access_token_expiration_time = create_access_token(data={"sub": id})
     return {"access_token": access_token, "refresh_token": form_data.refresh_token, "token_type": "bearer"} #, "expires_in": int(access_token_expiration_time.timestamp()), "refresh_token_expires_in": int(exp.timestamp())}
 
+@app.post("/change/add", status_code=status.HTTP_200_OK, response_model=bool)
+async def add_change(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    json_data: dict = Body(...)
+):
+    print()
+    if 'objectType' in json_data.keys() and 'objectId' in json_data.keys() and 'changeId' in json_data.keys():
+        addChange(changeId=json_data['changeId'], objectType=json_data['objectType'], objectId=json_data['objectId'])
+        return True
+    return False
+
 @app.get("/users/me/", response_model=User)
 async def read_users_me(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
     return current_user
 
-@app.post('/users/me/update', response_description="Update user", status_code=status.HTTP_200_OK, response_model=bool)
+@app.post('/users/me/update', response_description="Update user", status_code=status.HTTP_200_OK, response_model=dict)
 async def update_user_me(
     current_user: Annotated[User, Depends(get_current_active_user)],
     json_data: dict = Body(...)
@@ -250,7 +261,7 @@ async def get_book(
         if str(current_user.id) in book.users:
             return book
 
-@app.post('/books/update', response_description="Update book", status_code=status.HTTP_200_OK, response_model=bool)
+@app.post('/books/update', response_description="Update book", status_code=status.HTTP_200_OK, response_model=dict)
 async def update_book(
     current_user: Annotated[User, Depends(get_current_active_user)],
     json_data: dict = Body(...)

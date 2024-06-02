@@ -12,7 +12,41 @@ db = client['cuicuisine']
 users_collection = UserRepository(db)
 books_collection = BookRepository(db)
 recipes_collection = RecipeRepository(db)
+changes_collection = ChangeRepository(db)
 
+# CHANGES
+def addChange(changeId: str, objectType: str, objectId: str) -> None:
+    changes_collection.save(
+        Change(
+            changeId=changeId,
+            objectType=objectType,
+            objectId=objectId,
+            creationDate=datetime.now()
+        )
+    )
+
+def getChangesAfter(changeId: str, userId: str):
+    lastChange: Change = changes_collection.find_one_by({'changeId': changeId})
+    newChanges = changes_collection.find_by({'creationDate': {'$gt': lastChange.creationDate}})
+
+    newUserChanges = []
+
+    userBookIds = getUserBooksId(userId)
+    for change in newChanges:
+        if change.objectType == 'user':
+            if change.objectId == userId:
+                newUserChanges.append(change)
+        elif change.objectType == 'book':
+            if change.objectId in userBookIds:
+                newUserChanges.append(change)
+        elif change.objectType == 'recipe':
+            if getRecipeBook(change.objectId).id in userBookIds:
+                newUserChanges.append(change)
+    
+    return newUserChanges
+        
+
+# USER
 def getUserById(id: str) -> DbUser:
     user = users_collection.find_one_by_id(ObjectId(id))
 
@@ -50,7 +84,14 @@ def addUser(name: str, email: str, password: str) -> User:
     except Exception as e:
         print(e)
 
+def getUserBooks(id:str):
+    return books_collection.find_by({'users': id})
 
+def getUserBooksId(id:str):
+    books = getUserBooks(id)
+    return [book.id for book in books]
+
+# BOOKS
 def getBookById(id: str) -> Book:
     book = books_collection.find_one_by_id(ObjectId(id))
     if isinstance(book, Book):
@@ -85,7 +126,7 @@ def updateBook(id: str, data: dict):
         return None
 
 
-
+# RECIPES
 def getRecipeById(id: str) -> Recipe:
     recipe = recipes_collection.find_one_by_id(ObjectId(id))
     if isinstance(recipe, Recipe):

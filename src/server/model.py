@@ -92,6 +92,12 @@ class Recipe(BaseModel):
     creationDate: datetime
     lastUpdate: datetime
 
+class Change(BaseModel):
+    id: ObjectIdField = None
+    changeId: str
+    objectType: str
+    objectId: str
+    creationDate: datetime
 
 class UserRepository(AbstractRepository[DbUser]):
    class Meta:
@@ -104,6 +110,10 @@ class BookRepository(AbstractRepository[Book]):
 class RecipeRepository(AbstractRepository[Recipe]):
    class Meta:
       collection_name = 'recipes'
+
+class ChangeRepository(AbstractRepository[Change]):
+    class Meta:
+        collection_name = 'changes'
 
 class UpdateUserRequest(BaseModel, RequestBase):
         id: str
