@@ -52,24 +52,24 @@ class Book(BaseModel):
     lastUpdate: datetime
 
 class Ingredient(BaseModel):
-    id: ObjectIdField = None
+    #id: ObjectIdField = None
     name: str
     quantity: float
     unit: str
     density: float | None = 0
 
 class Tag(BaseModel):
-    id: ObjectIdField = None
+    #id: ObjectIdField = None
     name: str
     index: int
 
 class RecipeStep(BaseModel):
-    id: ObjectIdField = None
+    #id: ObjectIdField = None
     step: str
     time: int
 
 class Variant(BaseModel):
-    id: ObjectIdField = None
+    #id: ObjectIdField = None
     userId: str
     variant: str
 

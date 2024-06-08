@@ -224,6 +224,18 @@ async def add_change(
         return True
     return False
 
+@app.get("/change/get/{id}", response_model=dict)
+async def get_changes(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    id: str
+):
+    changes = getChangesAfter(changeId=id, userId=current_user.id)
+    if changes:
+        return {'result': True, 'changes': changes}
+    
+    return {'result': False}
+    
+
 @app.get("/users/me/", response_model=User)
 async def read_users_me(
     current_user: Annotated[User, Depends(get_current_active_user)]
@@ -247,14 +259,24 @@ async def update_user_me(
     
     return {'result': False}
 
+@app.get('/users/me/fetchall', response_model=dict)
+async def fetch_all(
+    current_user: Annotated[User, Depends(get_current_active_user)]
+):
+    books = getUserBooks(current_user.id)
+    data = {'books': [], 'recipes': [], 'lastChange': getLastChange()}
+    for book in books:
+        data['books'].append(str(book.id))
+        data['recipes'] += book.recipeUids.copy()
+
+    print(data)
+    return data
 
 @app.get('/books/get/{id}', response_model=Book|None)
 async def get_book(
     current_user: Annotated[User, Depends(get_current_active_user)],
     id: str
 ):
-    print(id)
-    print(current_user)
     book: Book = getBookById(id)
     print(f"{book}")
     if book:
@@ -310,18 +332,6 @@ async def get_recipe(
             print(access)
             return recipe
 
-@app.post('/test', status_code=status.HTTP_200_OK, response_model=bool)
-async def test(
-    current_user: Annotated[User, Depends(get_current_active_user)],
-    json_data: dict = Body(...)
-):
-    print(json_data)
-    t = Test(**json_data)
-    print(t)
-    data = t.dump()
-    print(data)
-    return True
-
 @app.post('/recipes/update', response_description="Update recipe", status_code=status.HTTP_200_OK, response_model=dict)
 async def update_recipe(
     current_user: Annotated[User, Depends(get_current_active_user)],
@@ -340,27 +350,6 @@ async def update_recipe(
             return {'result': True, 'dateTime': lastUpdate}
     
     return {'result': False}
-
-#testing
-# @app.post('/recipes/update', response_description="Update recipe", status_code=status.HTTP_200_OK, response_model=bool)
-# async def update_recipe(
-#     current_user: Annotated[User, Depends(get_current_active_user)],
-#     data: UpdateRecipeRequest
-# ):
-#     data = data.dump()
-#     id = data.pop('id')
-#     print(id)
-#     print(data)
-
-#     print(current_user)
-
-#     access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
-#     print(access)
-#     if access and access > 1:
-#         result = updateRecipe(id, data)
-#         return result
-    
-#     return False
 
 @app.put('/recipes/create', response_description="Create recipe", status_code=status.HTTP_201_CREATED, response_model=Recipe|None)
 async def create_recipe(

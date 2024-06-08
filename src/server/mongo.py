@@ -32,18 +32,28 @@ def getChangesAfter(changeId: str, userId: str):
     newUserChanges = []
 
     userBookIds = getUserBooksId(userId)
+    
     for change in newChanges:
+        print(change.model_dump())
         if change.objectType == 'user':
             if change.objectId == userId:
-                newUserChanges.append(change)
+                newUserChanges.append(change.model_dump())
         elif change.objectType == 'book':
             if change.objectId in userBookIds:
-                newUserChanges.append(change)
+                newUserChanges.append(change.model_dump())
         elif change.objectType == 'recipe':
-            if getRecipeBook(change.objectId).id in userBookIds:
-                newUserChanges.append(change)
+            print(str(getRecipeBook(change.objectId).id))
+            print(userBookIds)
+            if str(getRecipeBook(change.objectId).id) in userBookIds:
+                print('is in book')
+                newUserChanges.append(change.model_dump())
     
     return newUserChanges
+
+def getLastChange():
+    sortedChanges = changes_collection.get_collection().find().sort('creationDate', -1)
+    for change in sortedChanges:
+        return change['changeId']
         
 
 # USER
@@ -85,11 +95,12 @@ def addUser(name: str, email: str, password: str) -> User:
         print(e)
 
 def getUserBooks(id:str):
-    return books_collection.find_by({'users': id})
+    books = books_collection.find_by({"users": str(id)})
+    return books
 
 def getUserBooksId(id:str):
     books = getUserBooks(id)
-    return [book.id for book in books]
+    return [str(book.id) for book in books]
 
 # BOOKS
 def getBookById(id: str) -> Book:
