@@ -46,7 +46,7 @@ class DbUser(User):
 class Book(BaseModel):
     id: ObjectIdField = None
     name: str
-    recipeUids: list[str] = []
+    recipeIds: list[str] = []
     users: list[str]
     access: dict[str, int] ## to change
     lastUpdate: datetime
@@ -72,6 +72,7 @@ class Variant(BaseModel):
     #id: ObjectIdField = None
     userId: str
     variant: str
+    initials: str
 
 class Access(BaseModel):
     pass
@@ -135,7 +136,7 @@ class AddBookRequestForm:
 class UpdateBookRequest(BaseModel, RequestBase):
         id: str
         name: str|None = None
-        recipeUids: list[str]|None = None
+        recipeIds: list[str]|None = None
         users: list[str]|None = None
         access: dict[str, int]|None = None
 

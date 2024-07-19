@@ -267,7 +267,7 @@ async def fetch_all(
     data = {'books': [], 'recipes': [], 'lastChange': getLastChange()}
     for book in books:
         data['books'].append(str(book.id))
-        data['recipes'] += book.recipeUids.copy()
+        data['recipes'] += book.recipeIds.copy()
 
     print(data)
     return data
@@ -282,6 +282,21 @@ async def get_book(
     if book:
         if str(current_user.id) in book.users:
             return book
+        
+@app.get('/books/get_users/{id}', response_model=dict|None)
+async def get_book_usernames(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    id: str
+):
+    book: Book = getBookById(id)
+    if book:
+        if str(current_user.id) in book.users and book.access[str(current_user.id)] == 2:
+            usernames = {}
+            for userId in book.users:
+                user = getUserById(userId)
+                usernames[userId] = user.name
+            return usernames
+    
 
 @app.post('/books/update', response_description="Update book", status_code=status.HTTP_200_OK, response_model=dict)
 async def update_book(
@@ -311,12 +326,24 @@ async def create_book(
     
     book = addBook(
         name=form_data.name,
-        recipeUids=[],
+        recipeIds=[],
         users=[str(current_user.id)],
         access={str(current_user.id): 2}
     )
     
     return book
+
+@app.delete('/books/delete', response_description="Delete book", status_code=status.HTTP_200_OK, response_model=bool|None)
+async def delete_book(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    id: str = Body(...)
+):
+    print(id)
+    if id != "":
+        book = getBookById(id)
+        if isinstance(book, Book):
+            if current_user.id in book.users and book.access[current_user.id] == 2:
+                deleteBook(id, current_user.id)
 
 
 @app.get('/recipes/get/{id}', response_model=Recipe|None)
@@ -364,9 +391,23 @@ async def create_recipe(
         if book.access[str(current_user.id)] > 0:
             recipe = addRecipe(name=form_data.name)
 
-            book.recipeUids.append(str(recipe.id))
-            updateBook(book.id, {'recipeUids': book.recipeUids})
+            book.recipeIds.append(str(recipe.id))
+            updateBook(book.id, {'recipeIds': book.recipeIds})
 
             return recipe
     
     return None
+
+@app.delete('/recipe/delete', response_description="Delete recipe", status_code=status.HTTP_200_OK, response_model=bool|None)
+async def recipe(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    id: str = Body(...)
+):
+    print(id)
+    if id != "":
+        recipe = getRecipeById(id)
+        if isinstance(recipe, Recipe):
+            access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
+            print(access)
+            if access and access > 1:
+                deleteRecipe(id, current_user.id)

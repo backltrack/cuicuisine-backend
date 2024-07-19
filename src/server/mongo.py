@@ -108,11 +108,11 @@ def getBookById(id: str) -> Book:
     if isinstance(book, Book):
         return book
     
-def addBook(name: str, recipeUids: list[str], users: list[str], access: dict[str, int]):
+def addBook(name: str, recipeIds: list[str], users: list[str], access: dict[str, int]):
     try:
         result = books_collection.save(Book(
             name = name,
-            recipeUids=recipeUids,
+            recipeIds=recipeIds,
             users=users,
             access=access,
             lastUpdate=datetime.now()
@@ -135,6 +135,15 @@ def updateBook(id: str, data: dict):
     except Exception as e:
         print(e)
         return None
+
+def deleteBook(id: str):
+    try:
+        books_collection.delete_by_id(ObjectId(id))
+        return True
+
+    except Exception as e:
+        print(e)
+        return False
 
 
 # RECIPES
@@ -172,7 +181,7 @@ def updateRecipe(id: str, data: dict):
 
 def getRecipeBook(recipeId: str):
     try:
-        book = books_collection.find_one_by({'recipeUids': recipeId})
+        book = books_collection.find_one_by({'recipeIds': recipeId})
         return book
     except Exception as e:
         print(e)
@@ -186,3 +195,12 @@ def getRecipeUserAccess(userId: str, recipeId: str) -> int|None:
 
     except Exception as e:
         print(e)
+
+def deleteRecipe(id: str):
+    try:
+        recipes_collection.delete_by_id(ObjectId(id))
+        return True
+
+    except Exception as e:
+        print(e)
+        return False
