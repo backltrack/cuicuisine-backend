@@ -1,17 +1,18 @@
-from typing_extensions import Annotated, Doc
+from typing_extensions import Annotated
 from fastapi.encoders import jsonable_encoder
-from fastapi import FastAPI, status, Body, Request, Depends
+from fastapi import FastAPI, status, Body, Depends, File, UploadFile
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.exceptions import HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from typing import Annotated, Dict
+from typing import Annotated
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from datetime import timedelta, datetime
+from os import path, mkdir
 
 # try:
 from server.model import *
@@ -411,3 +412,42 @@ async def recipe(
             print(access)
             if access and access > 1:
                 deleteRecipe(id, current_user.id)
+
+## Images
+@app.post("/image/upload", status_code=status.HTTP_200_OK, response_model=bool)
+async def uploadFile(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    file: UploadFile,
+    info: Annotated[UploadImageInfoForm, Depends()]
+):
+    if not path.exists("../storage/"):
+        mkdir("../storage/")
+    
+    if not path.exists(f"../storage/{info.recipeId}"):
+        mkdir(f"../storage/{info.recipeId}")
+
+    try:
+        with open(f"../storage/{info.recipeId}/{info.imageId}", "wb") as out_file:
+            content = await file.read()
+            out_file.write(content)
+        
+        return True
+    except Exception as e:
+        print(e)
+        return  False
+
+@app.get("/image/download/{recipeId}/{imageId}", status_code=status.HTTP_200_OK)
+async def downloadFile(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    recipeId: str,
+    imageId: str
+):
+    if imageId:
+        imagePath = f"../storage/{recipeId}/{imageId}"
+        access = getRecipeUserAccess(userId=current_user.id, recipeId=recipeId)
+        print(access)
+        if access and access > 0:
+            print(imagePath)
+            if path.isfile(imagePath):
+                print('true')
+                return FileResponse(path=imagePath, media_type='application/octet-stream', filename=imageId)

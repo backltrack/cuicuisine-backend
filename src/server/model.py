@@ -226,6 +226,22 @@ class MyOAuth2RefreshRequestForm:
         self.client_id = client_id
         self.client_secret = client_secret
 
+class UploadImageInfoForm:
+    def __init__(
+        self,
+        *,
+        recipeId: Annotated[
+            str,
+            Form()
+        ],
+        imageId: Annotated[
+            str,
+            Form()
+        ]
+    ):
+        self.recipeId = recipeId
+        self.imageId = imageId
+
 class Test(BaseModel, RequestBase):
     tags: list[str]
     opt: int|None = None

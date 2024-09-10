@@ -198,7 +198,8 @@ def getRecipeUserAccess(userId: str, recipeId: str) -> int|None:
 
 def deleteRecipe(id: str):
     try:
-        recipes_collection.delete_by_id(ObjectId(id))
+        result = recipes_collection.delete_by_id(ObjectId(id))
+        print(result)
         return True
 
     except Exception as e:
