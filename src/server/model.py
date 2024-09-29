@@ -6,7 +6,20 @@ from fastapi.param_functions import Form, Doc
 
 from pydantic import BaseModel, Field
 from pydantic_mongo import AbstractRepository, ObjectIdField
+from bson import ObjectId
 from datetime import datetime
+
+from enum import IntEnum
+
+class OperationType(IntEnum):
+    CREATE = 0
+    DELETE = 1
+    UPDATE = 2
+
+class AccessLevel(IntEnum):
+    READ = 0
+    WRITE = 1
+    OWN = 2
 
 class RequestBase:
     def dump(self, exclude_empty=True):
@@ -52,30 +65,23 @@ class Book(BaseModel):
     lastUpdate: datetime
 
 class Ingredient(BaseModel):
-    #id: ObjectIdField = None
     name: str
     quantity: float
     unit: str
     density: float | None = 0
 
 class Tag(BaseModel):
-    #id: ObjectIdField = None
     name: str
     index: int
 
 class RecipeStep(BaseModel):
-    #id: ObjectIdField = None
     step: str
     time: int
 
 class Variant(BaseModel):
-    #id: ObjectIdField = None
     userId: str
     variant: str
     initials: str
-
-class Access(BaseModel):
-    pass
 
 class Recipe(BaseModel):
     id: ObjectIdField = None
@@ -97,6 +103,7 @@ class Change(BaseModel):
     id: ObjectIdField = None
     changeId: str
     objectType: str
+    operationType: int
     objectId: str
     creationDate: datetime
 
@@ -126,11 +133,16 @@ class AddBookRequestForm:
     def __init__(
         self,
         *,
+        id: Annotated[
+            str,
+            Form()
+        ],
         name: Annotated[
             str,
             Form()
         ]
     ):
+        self.id = ObjectId(id)
         self.name = name
 
 class UpdateBookRequest(BaseModel, RequestBase):
@@ -143,7 +155,10 @@ class UpdateBookRequest(BaseModel, RequestBase):
 class AddRecipeRequestForm:
     def __init__(
         self,
-        *,
+        id: Annotated[
+            str,
+            Form()
+        ],
         name: Annotated[
             str,
             Form()
@@ -153,6 +168,7 @@ class AddRecipeRequestForm:
             Form()
         ]
     ):
+        self.id = ObjectId(id)
         self.name = name
         self.bookId = bookId
 

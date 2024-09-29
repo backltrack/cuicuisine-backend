@@ -219,10 +219,9 @@ async def add_change(
     current_user: Annotated[User, Depends(get_current_active_user)],
     json_data: dict = Body(...)
 ):
-    print()
-    if 'objectType' in json_data.keys() and 'objectId' in json_data.keys() and 'changeId' in json_data.keys():
-        addChange(changeId=json_data['changeId'], objectType=json_data['objectType'], objectId=json_data['objectId'])
-        return True
+    print(json_data)
+    if 'objectType' in json_data.keys() and 'objectId' in json_data.keys() and 'changeId' in json_data.keys() and 'operationType' in json_data.keys():
+        return addChange(changeId=json_data['changeId'], objectType=json_data['objectType'], operationType=int(json_data['operationType']), objectId=json_data['objectId'])
     return False
 
 @app.get("/change/get/{id}", response_model=dict)
@@ -313,38 +312,46 @@ async def update_book(
     if book:
         if str(current_user.id) in book.users:
             if book.access[str(current_user.id)] > 1:
-                result, lastUpdate = updateBook(id, data)
+                result, lastUpdate = updateBookSet(id, data)
                 if result:
                     return {'result': True, 'dateTime': lastUpdate}
     
     return {'result': False}
 
-@app.put('/books/create', response_description="Create book", status_code=status.HTTP_201_CREATED, response_model=Book|None)
+@app.put('/books/create', response_description="Create book", status_code=status.HTTP_201_CREATED, response_model=dict)
 async def create_book(
     current_user: Annotated[User, Depends(get_current_active_user)],
     form_data: Annotated[AddBookRequestForm, Depends()]
 ):
+    print(form_data.id)
     
-    book = addBook(
+    ack, lastUpdate = addBook(
+        id=form_data.id,
         name=form_data.name,
         recipeIds=[],
         users=[str(current_user.id)],
         access={str(current_user.id): 2}
     )
-    
-    return book
 
-@app.delete('/books/delete', response_description="Delete book", status_code=status.HTTP_200_OK, response_model=bool|None)
+    print(ack)
+    
+    return {'result': ack, 'lastUpdate': lastUpdate}
+
+@app.delete('/books/delete', response_description="Delete book", status_code=status.HTTP_200_OK, response_model=bool)
 async def delete_book(
     current_user: Annotated[User, Depends(get_current_active_user)],
     id: str = Body(...)
 ):
-    print(id)
     if id != "":
         book = getBookById(id)
         if isinstance(book, Book):
-            if current_user.id in book.users and book.access[current_user.id] == 2:
-                deleteBook(id, current_user.id)
+            print(current_user.id, book.users, book.access, book.access[current_user.id])
+            assert(current_user in book.users)
+            assert(book.access[current_user.id] == 2)
+            if current_user.id in book.users and book.access[str(current_user.id)] == 2:
+                return deleteBook(id)
+    
+    return False
 
 
 @app.get('/recipes/get/{id}', response_model=Recipe|None)
@@ -371,47 +378,46 @@ async def update_recipe(
     id = data.pop('id')
 
     access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
-    print(access)
+    
     if access and access > 1:
-        result, lastUpdate = updateRecipe(id, data)
-        if result:
+        ack, lastUpdate = updateRecipe(id, data)
+        if ack:
             return {'result': True, 'dateTime': lastUpdate}
     
     return {'result': False}
 
-@app.put('/recipes/create', response_description="Create recipe", status_code=status.HTTP_201_CREATED, response_model=Recipe|None)
+@app.put('/recipes/create', response_description="Create recipe", status_code=status.HTTP_201_CREATED, response_model=dict)
 async def create_recipe(
     current_user: Annotated[User, Depends(get_current_active_user)],
     form_data: Annotated[AddRecipeRequestForm, Depends()]
 ):
     book = getBookById(form_data.bookId)
-    print(book)
-    print(current_user)
 
     if book and str(current_user.id) in book.users:
-        if book.access[str(current_user.id)] > 0:
-            recipe = addRecipe(name=form_data.name)
-
-            book.recipeIds.append(str(recipe.id))
-            updateBook(book.id, {'recipeIds': book.recipeIds})
-
-            return recipe
+        if book.access[str(current_user.id)] > AccessLevel.READ:
+            ack, lastUpdate = addRecipe(id=form_data.id, name=form_data.name)
+            
+            if ack:
+                book.recipeIds.append(str(form_data.id))
+                ack, _ = updateBookSet(book.id, {'recipeIds': book.recipeIds})
+                return {'result': ack, 'lastUpdate': lastUpdate}
     
-    return None
+    return {'result': False}
 
-@app.delete('/recipe/delete', response_description="Delete recipe", status_code=status.HTTP_200_OK, response_model=bool|None)
+@app.delete('/recipes/delete', response_description="Delete recipe", status_code=status.HTTP_200_OK, response_model=bool)
 async def recipe(
     current_user: Annotated[User, Depends(get_current_active_user)],
     id: str = Body(...)
 ):
-    print(id)
     if id != "":
         recipe = getRecipeById(id)
         if isinstance(recipe, Recipe):
             access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
             print(access)
             if access and access > 1:
-                deleteRecipe(id, current_user.id)
+                return deleteRecipe(id)
+    
+    return False
 
 ## Images
 @app.post("/image/upload", status_code=status.HTTP_200_OK, response_model=bool)
