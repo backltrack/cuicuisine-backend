@@ -242,7 +242,7 @@ class MyOAuth2RefreshRequestForm:
         self.client_id = client_id
         self.client_secret = client_secret
 
-class UploadImageInfoForm:
+class ImageInfoForm:
     def __init__(
         self,
         *,

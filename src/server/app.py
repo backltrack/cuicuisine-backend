@@ -11,8 +11,8 @@ from typing import Annotated
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-from datetime import timedelta, datetime
-from os import path, mkdir
+from datetime import timedelta, datetime, timezone
+from os import path, mkdir, remove, listdir
 
 # try:
 from server.model import *
@@ -64,7 +64,6 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 def authenticate_user(email: str, password: str):
-    print(email)
     user = getUserByEmail(email=email)
     if not user:
         raise InvalidEmailException
@@ -102,7 +101,7 @@ def validate_refresh_token(token: str):
 # Token gesture
 def create_access_token(data: dict | None = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(seconds=ACCESS_TOKEN_EXPIRE_SECONDES)
+    expire = datetime.now(timezone.utc) + timedelta(seconds=ACCESS_TOKEN_EXPIRE_SECONDES)
     to_encode.update({"exp": expire})
     print(to_encode)
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY_ACCESS, algorithm=ALGORITHM)
@@ -110,7 +109,7 @@ def create_access_token(data: dict | None = None):
 
 def create_refresh_token(data: dict | None = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire})
     print(to_encode)
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY_REFRESH, algorithm=ALGORITHM)
@@ -144,6 +143,14 @@ async def get_current_active_user(
 @app.get("/test_connexion", response_model=bool)
 async def test_connection():
     return True
+
+@app.post("/email_exists", response_model=bool)
+async def email_exists(
+    data: dict = Body(...)
+):
+    user = getUserByEmail(email=data['email'])
+    return bool(user) 
+
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(
@@ -219,7 +226,6 @@ async def add_change(
     current_user: Annotated[User, Depends(get_current_active_user)],
     json_data: dict = Body(...)
 ):
-    print(json_data)
     if 'objectType' in json_data.keys() and 'objectId' in json_data.keys() and 'changeId' in json_data.keys() and 'operationType' in json_data.keys():
         return addChange(changeId=json_data['changeId'], objectType=json_data['objectType'], operationType=int(json_data['operationType']), objectId=json_data['objectId'])
     return False
@@ -236,7 +242,7 @@ async def get_changes(
     return {'result': False}
     
 
-@app.get("/users/me/", response_model=User)
+@app.get("/users/me", response_model=User)
 async def read_users_me(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
@@ -250,7 +256,6 @@ async def update_user_me(
     update = UpdateUserRequest(**json_data)
     data = update.dump()
     id = data.pop('id')
-    print(data)
     
     result, lastUpdate = updateUser(str(current_user.id), data)
 
@@ -258,6 +263,12 @@ async def update_user_me(
         return {'result': True, 'dateTime': lastUpdate}
     
     return {'result': False}
+
+@app.delete('/users/me/delete', response_description="Delete user", status_code=status.HTTP_200_OK, response_model=bool)
+async def delete_user_me(
+    current_user: Annotated[User, Depends(get_current_active_user)]
+):
+    return deleteUser(current_user.id)
 
 @app.get('/users/me/fetchall', response_model=dict)
 async def fetch_all(
@@ -269,7 +280,6 @@ async def fetch_all(
         data['books'].append(str(book.id))
         data['recipes'] += book.recipeIds.copy()
 
-    print(data)
     return data
 
 @app.get('/books/get/{id}', response_model=Book|None)
@@ -278,7 +288,6 @@ async def get_book(
     id: str
 ):
     book: Book = getBookById(id)
-    print(f"{book}")
     if book:
         if str(current_user.id) in book.users:
             return book
@@ -322,9 +331,7 @@ async def update_book(
 async def create_book(
     current_user: Annotated[User, Depends(get_current_active_user)],
     form_data: Annotated[AddBookRequestForm, Depends()]
-):
-    print(form_data.id)
-    
+):    
     ack, lastUpdate = addBook(
         id=form_data.id,
         name=form_data.name,
@@ -332,8 +339,6 @@ async def create_book(
         users=[str(current_user.id)],
         access={str(current_user.id): 2}
     )
-
-    print(ack)
     
     return {'result': ack, 'lastUpdate': lastUpdate}
 
@@ -345,10 +350,7 @@ async def delete_book(
     if id != "":
         book = getBookById(id)
         if isinstance(book, Book):
-            print(current_user.id, book.users, book.access, book.access[current_user.id])
-            assert(current_user in book.users)
-            assert(book.access[current_user.id] == 2)
-            if current_user.id in book.users and book.access[str(current_user.id)] == 2:
+            if str(current_user.id) in book.users and book.access[str(current_user.id)] == 2:
                 return deleteBook(id)
     
     return False
@@ -363,8 +365,7 @@ async def get_recipe(
 
     if recipe:
         access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
-        if access and access > 0:
-            print(access)
+        if access != None:
             return recipe
 
 @app.post('/recipes/update', response_description="Update recipe", status_code=status.HTTP_200_OK, response_model=dict)
@@ -372,14 +373,13 @@ async def update_recipe(
     current_user: Annotated[User, Depends(get_current_active_user)],
     json_data: dict = Body(...)
 ):
-    print(json_data)
     update = UpdateRecipeRequest(**json_data)
     data = update.dump()
     id = data.pop('id')
 
     access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
     
-    if access and access > 1:
+    if access != None and access > 0:
         ack, lastUpdate = updateRecipe(id, data)
         if ack:
             return {'result': True, 'dateTime': lastUpdate}
@@ -413,8 +413,7 @@ async def recipe(
         recipe = getRecipeById(id)
         if isinstance(recipe, Recipe):
             access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
-            print(access)
-            if access and access > 1:
+            if access != None and access > 1:
                 return deleteRecipe(id)
     
     return False
@@ -424,7 +423,7 @@ async def recipe(
 async def uploadFile(
     current_user: Annotated[User, Depends(get_current_active_user)],
     file: UploadFile,
-    info: Annotated[UploadImageInfoForm, Depends()]
+    info: Annotated[ImageInfoForm, Depends()]
 ):
     if not path.exists("../storage/"):
         mkdir("../storage/")
@@ -439,7 +438,6 @@ async def uploadFile(
         
         return True
     except Exception as e:
-        print(e)
         return  False
 
 @app.get("/image/download/{recipeId}/{imageId}", status_code=status.HTTP_200_OK)
@@ -448,12 +446,29 @@ async def downloadFile(
     recipeId: str,
     imageId: str
 ):
-    if imageId:
+    if imageId and recipeId:
         imagePath = f"../storage/{recipeId}/{imageId}"
         access = getRecipeUserAccess(userId=current_user.id, recipeId=recipeId)
-        print(access)
-        if access and access > 0:
-            print(imagePath)
+        if access != None:
             if path.isfile(imagePath):
-                print('true')
                 return FileResponse(path=imagePath, media_type='application/octet-stream', filename=imageId)
+
+@app.delete("/image/delete", status_code=status.HTTP_200_OK, response_model=bool)
+async def deleteFile(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    data: dict = Body(...)
+):
+    if ('recipeId' in data.keys() and 'imageId' in data.keys()):
+        recipeId = data['recipeId']
+        imageId = data['imageId']
+
+        imagePath = f"../storage/{recipeId}/{imageId}"
+        folderPath = f"../storage/{recipeId}"
+        access = getRecipeUserAccess(userId=current_user.id, recipeId=recipeId)
+        if access != None and access > 0:
+            if path.isfile(imagePath):
+                remove(imagePath)
+                if len(listdir(folderPath)) == 0:
+                    remove(folderPath)
+                return True
+    return False

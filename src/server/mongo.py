@@ -1,7 +1,7 @@
 from fastapi.encoders import jsonable_encoder
 from pymongo import MongoClient
 from server.model import *
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
 
 # LOAD COLLECTIONS
@@ -18,7 +18,6 @@ changes_collection = ChangeRepository(db)
 def addChange(changeId: str, objectType: str, operationType: int, objectId: str) -> bool:
     if operationType == OperationType.DELETE:
         previous_changes = changes_collection.find_by({"objectId": objectId})
-        print(previous_changes)
         for change in previous_changes:
             result = changes_collection.delete_by_id(change.id)
             if not result.acknowledged:
@@ -30,7 +29,7 @@ def addChange(changeId: str, objectType: str, operationType: int, objectId: str)
             objectType=objectType,
             operationType=operationType,
             objectId=objectId,
-            creationDate=datetime.now()
+            creationDate=datetime.now(timezone.utc)
         )
     )
     return result.acknowledged
@@ -44,7 +43,6 @@ def getChangesAfter(changeId: str, userId: str):
     userBookIds = getUserBooksId(userId)
     
     for change in newChanges:
-        print(change.model_dump())
         if change.objectType == 'user':
             if change.objectId == userId:
                 newUserChanges.append(change.model_dump())
@@ -52,10 +50,7 @@ def getChangesAfter(changeId: str, userId: str):
             if change.objectId in userBookIds:
                 newUserChanges.append(change.model_dump())
         elif change.objectType == 'recipe':
-            print(str(getRecipeBook(change.objectId).id))
-            print(userBookIds)
             if str(getRecipeBook(change.objectId).id) in userBookIds:
-                print('is in book')
                 newUserChanges.append(change.model_dump())
     
     return newUserChanges
@@ -81,7 +76,7 @@ def getUserByEmail(email: str) -> DbUser:
 
 def updateUser(id: str, data: dict):
     try:
-        data['lastUpdate'] = datetime.now()
+        data['lastUpdate'] = datetime.now(timezone.utc)
         
         result = users_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update={'$set': data})
         return result.modified_count > 0, data['lastUpdate']
@@ -95,14 +90,27 @@ def addUser(name: str, email: str, password: str) -> User:
             name=name,
             email=email,
             hashed_password=password,
-            lastUpdate=datetime.now()
+            lastUpdate=datetime.now(timezone.utc)
         ))
-        print(result.inserted_id)
         checked_user = getUserById(result.inserted_id)
-        print(checked_user)
         return checked_user
     except Exception as e:
         print(e)
+
+def deleteUser(id: str) -> bool:
+    try:
+        # get books
+        books = getUserBooks(id)
+        # search for books that only belong to this user
+        for book in books:
+            if len(book.users) == 1:
+                deleteBook(book.id)
+        # delete user
+        result = users_collection.delete_by_id(ObjectId(id))
+        return result.acknowledged
+    except Exception as e:
+        print(e)
+        return False
 
 def getUserBooks(id:str):
     books = books_collection.find_by({"users": str(id)})
@@ -119,7 +127,7 @@ def getBookById(id: str) -> Book:
         return book
     
 def addBook(id: ObjectId, name: str, recipeIds: list[str], users: list[str], access: dict[str, int]):
-    currentTime = datetime.now()
+    currentTime = datetime.now(timezone.utc)
     try:
         result = books_collection.save(Book(
             id = id,
@@ -138,7 +146,7 @@ def addBook(id: ObjectId, name: str, recipeIds: list[str], users: list[str], acc
 def updateBook(id: str, data: dict):
     try:
         result = books_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update=data)
-        books_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update={'$set': {'lastUpdate': datetime.now()}})
+        books_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update={'$set': {'lastUpdate': datetime.now(timezone.utc)}})
         return result.acknowledged, data['lastUpdate']
     except Exception as e:
         print(e)
@@ -166,13 +174,17 @@ def deleteBook(id: str):
 
 
 # RECIPES
-def getRecipeById(id: str) -> Recipe:
-    recipe = recipes_collection.find_one_by_id(ObjectId(id))
+def getRecipeById(id: str) -> Recipe|None:
+    try:
+        recipe = recipes_collection.find_one_by_id(ObjectId(id))
+    except Exception as e:
+        print(e)
+
     if isinstance(recipe, Recipe):
         return recipe
     
 def addRecipe(id: ObjectId, name: str):
-    currentTime = datetime.now()
+    currentTime = datetime.now(timezone.utc)
     try:
         result = recipes_collection.save(Recipe(
             id = id,
@@ -188,11 +200,10 @@ def addRecipe(id: ObjectId, name: str):
 
 def updateRecipe(id: str, data: dict):
     try:
-        data['lastUpdate'] = datetime.now()
-        _data = jsonable_encoder(data)
-
-        result = recipes_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update={'$set': _data})
-        return result.acknowledged, data['lastUpdate']
+        dateNow = datetime.now(timezone.utc)
+        result = recipes_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update={'$set': jsonable_encoder(data)})
+        recipes_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update={'$set': {'lastUpdate': dateNow}})
+        return result.acknowledged, dateNow
     except Exception as e:
         print(e)
         return False, ''
@@ -206,14 +217,10 @@ def getRecipeBook(recipeId: str):
         print(e)
 
 def getRecipeUserAccess(userId: str, recipeId: str) -> int|None:
-    try:
-        book = getRecipeBook(recipeId)
-        if book:
-            if str(userId) in book.users:
-                return book.access[str(userId)]
-
-    except Exception as e:
-        print(e)
+    book = getRecipeBook(recipeId)
+    if book:
+        if str(userId) in book.users:
+            return book.access[str(userId)]
 
 def deleteRecipe(id: str):
     try:
