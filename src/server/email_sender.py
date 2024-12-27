@@ -43,7 +43,3 @@ class GmailSender:
         except HTTPError as error:
             print(F'An error occurred: {error}')
             message = None
-
-
-gmail = GmailSender()
-gmail.send('nicolas.monsel@gmx.fr', "test authenticated", "test message")

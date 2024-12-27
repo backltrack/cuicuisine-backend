@@ -11,8 +11,15 @@ from typing import Annotated
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
+import base64
+import random, string
+
+from server.email_sender import GmailSender
+
 from datetime import timedelta, datetime, timezone
-from os import path, mkdir, remove, listdir
+from os import path, mkdir, remove, listdir, getcwd
 
 # try:
 from server.model import *
@@ -98,6 +105,36 @@ def validate_refresh_token(token: str):
     except JWTError:
         raise credentials_exception
 
+# RSA decryption for passwords
+def decrypt_data(data):
+    print('>>')
+    decoded_data = base64.b64decode(data)
+
+    with open("private_key.pem", "r") as k:
+        key = RSA.importKey(k.read())
+
+    decipher = PKCS1_OAEP.new(key)
+    return decipher.decrypt(decoded_data)
+
+# Security emails
+
+def randomword(length):
+   letters = string.ascii_lowercase
+   return ''.join(random.choice(letters) for i in range(length))
+
+def sendVerificationEmail():
+    pass
+
+def sendResetEmail(email) -> str:
+    '''function that send a password reset email to the user's email, and returns the security code.'''
+    securityCode = randomword(10)
+    GmailSender().send(
+        dest=email,
+        topic="Cuicuisine account recovery",
+        msg=f"Open Cuicuisine and use the following code to reset your password : ${securityCode}"
+    )
+    
+
 # Token gesture
 def create_access_token(data: dict | None = None):
     to_encode = data.copy()
@@ -157,7 +194,10 @@ async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ):
     try:
-        user = authenticate_user(form_data.username, form_data.password)
+        print(form_data.password)
+        pwd = decrypt_data(form_data.password)
+        print(pwd)
+        user = authenticate_user(form_data.username, pwd)
         
         access_token, access_token_expiration_time = create_access_token(data={"sub": str(user.id)})
         refresh_token, refresh_token_expiration_time = create_refresh_token(data={"sub": str(user.id)})
