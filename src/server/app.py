@@ -194,9 +194,7 @@ async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ):
     try:
-        print(form_data.password)
         pwd = decrypt_data(form_data.password)
-        print(pwd)
         user = authenticate_user(form_data.username, pwd)
         
         access_token, access_token_expiration_time = create_access_token(data={"sub": str(user.id)})
@@ -241,7 +239,8 @@ async def register_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     try:
-        user = addUser(name="test", email=form_data.username, password=get_password_hash(form_data.password))
+        pwd = decrypt_data(form_data.password)
+        user = addUser(name="test", email=form_data.username, password=get_password_hash(pwd))
 
         access_token, access_token_expiration_time = create_access_token(data={"sub": str(user.id)})
         refresh_token, refresh_token_expiration_time = create_refresh_token(data={"sub": str(user.id)})
