@@ -1,7 +1,7 @@
 from fastapi.encoders import jsonable_encoder
 from pymongo import MongoClient
 from server.model import *
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from bson import ObjectId
 
 # LOAD COLLECTIONS
@@ -13,6 +13,7 @@ users_collection = UserRepository(db)
 books_collection = BookRepository(db)
 recipes_collection = RecipeRepository(db)
 changes_collection = ChangeRepository(db)
+recoveries_collection = RecoveryRepository(db)
 
 # CHANGES
 def addChange(changeId: str, objectType: str, operationType: int, objectId: str) -> bool:
@@ -60,6 +61,30 @@ def getLastChange():
     for change in sortedChanges:
         return change['changeId']
         
+# RECOVERIES
+def addRecoveryRequest(email: str, code: str):
+    result = recoveries_collection.save(Recovery(
+        email=email,
+        code=code,
+        expiration_date=datetime.today() + timedelta(minutes=15)
+    ))
+    return result.acknowledged
+
+def checkRecoveryCode(email: str, code: str) -> Result:
+    recovery = recoveries_collection.find_one_by(query={'email': email, 'code': code})
+    print(code)
+    print(email)
+    print(recoveries_collection.find_one_by(query={'email': 'nicolas.monsel@gmx.fr', 'code': "ASPMPLEP"}))
+    print(recovery)
+    if not recovery:
+        return Result(result=False, reason="Wrong code")
+    if datetime.today() > recovery.expiration_date:
+        return Result(result=False, reason="Code expired")
+    return Result(result=True)
+
+def removeAllRecoveriesForEmail(email: str):
+    result = recoveries_collection.get_collection().delete_many(filter={"email": email})
+    return result.acknowledged
 
 # USER
 def getUserById(id: str) -> DbUser:
@@ -83,6 +108,11 @@ def updateUser(id: str, data: dict):
     except Exception as e:
         print(e)
         return None
+
+def updateUserPassword(id: str, password: str) -> bool:
+    result = updateUser(id, {"hashed_password": password})
+    return result and result[0]
+
 
 def addUser(name: str, email: str, password: str) -> User:
     try:

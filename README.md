@@ -4,5 +4,8 @@
 `openssl genpkey -algorithm RSA -out private_key.pem`
 `openssl rsa -in private_key.pem -pubout -out public_key.pem`
 
-store private key in src/server/
+store private key in src/
 store public key in client application
+
+# Gmail API credentials
+store credentials.json in src/

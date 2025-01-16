@@ -33,6 +33,9 @@ class RequestBase:
                 data.pop(key)
         return data
 
+class Result(BaseModel, RequestBase):
+    result: bool
+    reason: str = ''
 
 class Token(BaseModel):
     access_token: str
@@ -107,6 +110,12 @@ class Change(BaseModel):
     objectId: str
     creationDate: datetime
 
+class Recovery(BaseModel):
+    id: ObjectIdField = None
+    email: str
+    code: str
+    expiration_date: datetime
+
 class UserRepository(AbstractRepository[DbUser]):
    class Meta:
       collection_name = 'users'
@@ -123,11 +132,24 @@ class ChangeRepository(AbstractRepository[Change]):
     class Meta:
         collection_name = 'changes'
 
+class RecoveryRepository(AbstractRepository[Recovery]):
+    class Meta:
+        collection_name = 'recoveries'
+
 class UpdateUserRequest(BaseModel, RequestBase):
-        id: str
-        name: str|None = None
-        email: str|None = None
-        favoriteRecipes: list[str]|None = None
+    id: str
+    name: str|None = None
+    email: str|None = None
+    favoriteRecipes: list[str]|None = None
+
+class NewUserPasswordRequest(BaseModel, RequestBase):
+    old_pwd: str
+    new_pwd: str
+
+class RecoverPasswordRequest(BaseModel, RequestBase):
+    email: str
+    encrypted_password: str
+    security_code: str
 
 class AddBookRequestForm:
     def __init__(
@@ -258,8 +280,5 @@ class ImageInfoForm:
         self.recipeId = recipeId
         self.imageId = imageId
 
-class Test(BaseModel, RequestBase):
-    tags: list[str]
-    opt: int|None = None
-    new: list[dict]
+
     

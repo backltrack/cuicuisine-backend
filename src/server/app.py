@@ -1,5 +1,4 @@
 from typing_extensions import Annotated
-from fastapi.encoders import jsonable_encoder
 from fastapi import FastAPI, status, Body, Depends, File, UploadFile
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.exceptions import HTTPException
@@ -107,7 +106,6 @@ def validate_refresh_token(token: str):
 
 # RSA decryption for passwords
 def decrypt_data(data):
-    print('>>')
     decoded_data = base64.b64decode(data)
 
     with open("private_key.pem", "r") as k:
@@ -127,12 +125,13 @@ def sendVerificationEmail():
 
 def sendResetEmail(email) -> str:
     '''function that send a password reset email to the user's email, and returns the security code.'''
-    securityCode = randomword(10)
+    securityCode = randomword(8).upper()
     GmailSender().send(
         dest=email,
-        topic="Cuicuisine account recovery",
-        msg=f"Open Cuicuisine and use the following code to reset your password : ${securityCode}"
+        topic="Cuicuisine forgotten password",
+        msg=f"Open Cuicuisine and use the following code to reset your password : {securityCode}"
     )
+    return securityCode
     
 
 # Token gesture
@@ -260,6 +259,7 @@ async def refresh_access_token(form_data: Annotated[MyOAuth2RefreshRequestForm, 
     access_token, access_token_expiration_time = create_access_token(data={"sub": id})
     return {"access_token": access_token, "refresh_token": form_data.refresh_token, "token_type": "bearer"} #, "expires_in": int(access_token_expiration_time.timestamp()), "refresh_token_expires_in": int(exp.timestamp())}
 
+
 @app.post("/change/add", status_code=status.HTTP_200_OK, response_model=bool)
 async def add_change(
     current_user: Annotated[User, Depends(get_current_active_user)],
@@ -286,6 +286,62 @@ async def read_users_me(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
     return current_user
+
+@app.post("/users/me/change_password/", status_code=status.HTTP_200_OK, response_model=bool)
+async def change_password(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    json_data: dict = Body(...)
+):
+    data = NewUserPasswordRequest(**json_data)
+    old_pwd = decrypt_data(data.old_pwd)
+    new_pwd = decrypt_data(data.new_pwd)
+
+    user = getUserById(current_user.id)
+
+    if verify_password(old_pwd, user.hashed_password):
+        return updateUserPassword(current_user.id, get_password_hash(new_pwd))
+    return False
+    
+@app.post("/users/request_password_recovery/", status_code=status.HTTP_200_OK, response_model=Result)
+async def request_password_recovery(
+    email: str = Body(...)
+):
+    """Send forgotten password email"""
+    
+    if email:
+        user = getUserByEmail(email=email)
+        
+        if user:
+            code = sendResetEmail(email)
+            if code:
+                addResult = addRecoveryRequest(email, code)
+                if addResult:
+                    return Result(result=True)
+                return Result(result=False, reason="Failed to add code to db")
+            return Result(result=False, reason="Failed to send code by email")
+
+    return  Result(result=False, reason="Invalid email")
+
+@app.post("/users/password_recovery/", status_code=status.HTTP_200_OK, response_model=Result)
+async def password_recovery(
+    json_data: dict = Body(...)
+):
+    data = RecoverPasswordRequest(**json_data)
+    email = decrypt_data(data.email).decode()
+    pwd = decrypt_data(data.encrypted_password).decode()
+    code = decrypt_data(data.security_code).decode()
+
+    checkResult = checkRecoveryCode(email, code)
+
+    if checkResult.result:
+        removeAllRecoveriesForEmail(email)
+        user = getUserByEmail(email=email)
+        if updateUserPassword(user.id, get_password_hash(pwd)):
+            return Result(result=True)
+        return Result(result=False, reason="User update failed")
+        
+    return checkResult
+        
 
 @app.post('/users/me/update', response_description="Update user", status_code=status.HTTP_200_OK, response_model=dict)
 async def update_user_me(
