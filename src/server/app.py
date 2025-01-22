@@ -265,6 +265,8 @@ async def add_change(
     current_user: Annotated[User, Depends(get_current_active_user)],
     json_data: dict = Body(...)
 ):
+    print(json_data)
+    print(f"operation type: {json_data['operationType']}")
     if 'objectType' in json_data.keys() and 'objectId' in json_data.keys() and 'changeId' in json_data.keys() and 'operationType' in json_data.keys():
         return addChange(changeId=json_data['changeId'], objectType=json_data['objectType'], operationType=int(json_data['operationType']), objectId=json_data['objectId'])
     return False
@@ -370,7 +372,7 @@ async def fetch_all(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
     books = getUserBooks(current_user.id)
-    data = {'books': [], 'recipes': [], 'lastChange': getLastChange()}
+    data = {'books': [], 'recipes': [], 'lastChange': getLastUserChangeId(current_user.id)}
     for book in books:
         data['books'].append(str(book.id))
         data['recipes'] += book.recipeIds.copy()
@@ -435,7 +437,7 @@ async def create_book(
         access={str(current_user.id): 2}
     )
     
-    return {'result': ack, 'lastUpdate': lastUpdate}
+    return {'result': True, 'lastUpdate': lastUpdate}
 
 @app.delete('/books/delete', response_description="Delete book", status_code=status.HTTP_200_OK, response_model=bool)
 async def delete_book(
@@ -495,7 +497,7 @@ async def create_recipe(
             if ack:
                 book.recipeIds.append(str(form_data.id))
                 ack, _ = updateBookSet(book.id, {'recipeIds': book.recipeIds})
-                return {'result': ack, 'lastUpdate': lastUpdate}
+                return {'result': True, 'lastUpdate': lastUpdate}
     
     return {'result': False}
 

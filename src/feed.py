@@ -37,7 +37,7 @@ def findBook(id, data):
         if recipe['id'] == id:
             return recipe
 
-with open('../tests/extract_recettes.json', 'r') as f:
+with open('../tests/extract_recettes.json', 'r', encoding='utf-8') as f:
     data = json.load(f)
 
 for user in data['users']:
