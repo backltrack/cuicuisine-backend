@@ -58,9 +58,10 @@ def getChangesAfter(changeId: str, userId: str):
 
 def getLastUserChangeId(userId: str) -> str|None:
     userBookIds = getUserBooksId(userId)
-    sortedChanges: list[Change] = changes_collection.get_collection().find(filter={}).sort('creationDate', -1)
-    
-    for change in sortedChanges:
+    sortedChanges = changes_collection.get_collection().find().sort('creationDate', -1)
+
+    for _change in sortedChanges:
+        change = Change.model_validate(_change)
         if change.objectType == 'user':
             if change.objectId == userId:
                 return change.changeId
@@ -82,10 +83,7 @@ def addRecoveryRequest(email: str, code: str):
 
 def checkRecoveryCode(email: str, code: str) -> Result:
     recovery = recoveries_collection.find_one_by(query={'email': email, 'code': code})
-    print(code)
-    print(email)
-    print(recoveries_collection.find_one_by(query={'email': 'nicolas.monsel@gmx.fr', 'code': "ASPMPLEP"}))
-    print(recovery)
+
     if not recovery:
         return Result(result=False, reason="Wrong code")
     if datetime.today() > recovery.expiration_date:

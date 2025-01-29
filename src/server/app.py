@@ -18,7 +18,7 @@ import random, string
 from server.email_sender import GmailSender
 
 from datetime import timedelta, datetime, timezone
-from os import path, mkdir, remove, listdir, getcwd
+from os import path, mkdir, remove, listdir, getcwd, rmdir
 
 # try:
 from server.model import *
@@ -566,6 +566,6 @@ async def deleteFile(
             if path.isfile(imagePath):
                 remove(imagePath)
                 if len(listdir(folderPath)) == 0:
-                    remove(folderPath)
+                    rmdir(folderPath)
                 return True
     return False
