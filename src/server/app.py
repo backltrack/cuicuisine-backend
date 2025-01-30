@@ -194,7 +194,8 @@ async def login_for_access_token(
 ):
     try:
         pwd = decrypt_data(form_data.password)
-        user = authenticate_user(form_data.username, pwd)
+        email = decrypt_data(form_data.username)
+        user = authenticate_user(email, pwd)
         
         access_token, access_token_expiration_time = create_access_token(data={"sub": str(user.id)})
         refresh_token, refresh_token_expiration_time = create_refresh_token(data={"sub": str(user.id)})
@@ -230,7 +231,9 @@ async def register_for_access_token(
     #         detail="Incorrect password",
     #         headers={"WWW-Authenticate": "Bearer"},
     #     )
-    user = getUserByEmail(email=form_data.username)
+
+    email = decrypt_data(form_data.username)
+    user = getUserByEmail(email=email)
     if user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -239,7 +242,7 @@ async def register_for_access_token(
         )
     try:
         pwd = decrypt_data(form_data.password)
-        user = addUser(name="test", email=form_data.username, password=get_password_hash(pwd))
+        user = addUser(name="test", email=email, password=get_password_hash(pwd))
 
         access_token, access_token_expiration_time = create_access_token(data={"sub": str(user.id)})
         refresh_token, refresh_token_expiration_time = create_refresh_token(data={"sub": str(user.id)})

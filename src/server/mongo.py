@@ -3,10 +3,14 @@ from pymongo import MongoClient
 from server.model import *
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
+from dotenv import load_dotenv
+from os import getenv
+
+load_dotenv()
 
 # LOAD COLLECTIONS
 
-client = MongoClient('localhost', 27017)
+client = MongoClient(getenv("MONGO_ALIAS"), int(getenv("MONGO_PORT")))
 db = client['cuicuisine']
 
 users_collection = UserRepository(db)
