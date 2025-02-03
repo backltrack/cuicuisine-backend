@@ -5,6 +5,8 @@ token.pickle
 private_key.pem
 /tls/*
 
+.vscode/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
