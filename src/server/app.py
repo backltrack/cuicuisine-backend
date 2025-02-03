@@ -18,17 +18,10 @@ import random, string
 from server.email_sender import GmailSender
 
 from datetime import timedelta, datetime, timezone
-from os import path, mkdir, remove, listdir, getcwd, rmdir
+from os import path, mkdir, remove, listdir, rmdir, getcwd
 
-# try:
 from server.model import *
 from server.mongo import *
-# except:
-#     # for test purpose
-#     from model import *
-#     from mongo import *
-
-
 
 # to get a string like this run:
 # openssl rand -hex 32
@@ -70,6 +63,7 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 def authenticate_user(email: str, password: str):
+
     user = getUserByEmail(email=email)
     if not user:
         raise InvalidEmailException
@@ -108,11 +102,12 @@ def validate_refresh_token(token: str):
 def decrypt_data(data):
     decoded_data = base64.b64decode(data)
 
-    with open("private_key.pem", "r") as k:
+    pem_path = "src/private_key.pem" if getenv("ENV") == "production" else "private_key.pem"
+    with open(pem_path, "r") as k:
         key = RSA.importKey(k.read())
 
     decipher = PKCS1_OAEP.new(key)
-    return decipher.decrypt(decoded_data)
+    return decipher.decrypt(decoded_data).decode()
 
 # Security emails
 
@@ -195,6 +190,7 @@ async def login_for_access_token(
     try:
         pwd = decrypt_data(form_data.password)
         email = decrypt_data(form_data.username)
+
         user = authenticate_user(email, pwd)
         
         access_token, access_token_expiration_time = create_access_token(data={"sub": str(user.id)})
@@ -332,9 +328,9 @@ async def password_recovery(
     json_data: dict = Body(...)
 ):
     data = RecoverPasswordRequest(**json_data)
-    email = decrypt_data(data.email).decode()
-    pwd = decrypt_data(data.encrypted_password).decode()
-    code = decrypt_data(data.security_code).decode()
+    email = decrypt_data(data.email)
+    pwd = decrypt_data(data.encrypted_password)
+    code = decrypt_data(data.security_code)
 
     checkResult = checkRecoveryCode(email, code)
 

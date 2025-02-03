@@ -3,6 +3,7 @@
 credentials.json
 token.pickle
 private_key.pem
+/tls/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

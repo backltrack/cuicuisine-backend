@@ -1,5 +1,5 @@
 import base64
-import os
+from os import getenv, path
 import pickle
 from email.mime.text import MIMEText
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -13,19 +13,21 @@ class GmailSender:
     ]
 
     def __init__(self):
+        pickle_path = "src/token.pickle" if getenv("ENV") == "production" else "token.pickle"
+        cred_path = "src/credentials.json" if getenv("ENV") == "production" else "credentials.json"
         creds = None
-        if os.path.exists("token.pickle"):
-            with open("token.pickle", "rb") as token:
+        if path.exists(pickle_path):
+            with open(pickle_path, "rb") as token:
                 creds = pickle.load(token)
 
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                flow = InstalledAppFlow.from_client_secrets_file('credentials.json', GmailSender.SCOPES)
+                flow = InstalledAppFlow.from_client_secrets_file(cred_path, GmailSender.SCOPES)
                 creds = flow.run_local_server(port=0)
 
-            with open("token.pickle", "wb") as token:
+            with open(pickle_path, "wb") as token:
                 pickle.dump(creds, token)
 
         self.service = build('gmail', 'v1', credentials=creds)
