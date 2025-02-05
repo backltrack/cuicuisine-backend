@@ -22,7 +22,10 @@ services:
       - MONGO_PORT=27017
       - ENV=production
     volumes:
-      - server-data:/app/storage
+      - ${STORAGE}:/app/storage/:rw
+      # - server-data:/app/storage
+      # - ./certbot/www:/var/www/certbot/:ro
+      # - ./certbot/conf/:/app/ca/:ro
     develop:
       watch:
         - action: rebuild
@@ -34,22 +37,7 @@ services:
     ports:
       - 27018:27017
     volumes:
-      - mongo-data:/data/db # Persist MongoDB data
-      - mongo-config:/data/configdb # Persist MongoDB configuration
-      # - ./certbot/www:/var/www/certbot/:ro
-      # - ./certbot/conf/:/etc/nginx/ssl/:ro
-
-  # nginx-reverse-proxy:
-  #   image: nginx:latest
-  #   container_name: nginx-reverse-proxy
-  #   ports:
-  #     - 80:80
-  #     - 443:443
-  #   restart: always
-  #   volumes:
-  #     - ./nginx/conf/:/etc/nginx/conf.d/:ro
-  #     - ./certbot/www:/var/www/certbot/:ro
-  #     - ./certbot/conf/:/etc/nginx/ssl/:ro
+      - ${DB}:/data/db:rw # Persist MongoDB data
   
   # certbot:
   #   image: certbot/certbot:latest
@@ -57,13 +45,5 @@ services:
   #   volumes:
   #     - ./certbot/www/:/var/www/certbot/:rw
   #     - ./certbot/conf/:/etc/letsencrypt/:rw
-    
 
-volumes:
-  mongo-data:
-    driver: local
-  mongo-config:
-    driver: local
-  server-data:
-    driver: local
 

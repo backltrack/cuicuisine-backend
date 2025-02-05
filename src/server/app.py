@@ -521,14 +521,14 @@ async def uploadFile(
     file: UploadFile,
     info: Annotated[ImageInfoForm, Depends()]
 ):
-    if not path.exists("../storage/"):
-        mkdir("../storage/")
+    if not path.exists("storage/"):
+        mkdir("storage/")
     
-    if not path.exists(f"../storage/{info.recipeId}"):
-        mkdir(f"../storage/{info.recipeId}")
+    if not path.exists(f"storage/{info.recipeId}"):
+        mkdir(f"storage/{info.recipeId}")
 
     try:
-        with open(f"../storage/{info.recipeId}/{info.imageId}", "wb") as out_file:
+        with open(f"storage/{info.recipeId}/{info.imageId}", "wb") as out_file:
             content = await file.read()
             out_file.write(content)
         
@@ -543,7 +543,7 @@ async def downloadFile(
     imageId: str
 ):
     if imageId and recipeId:
-        imagePath = f"../storage/{recipeId}/{imageId}"
+        imagePath = f"storage/{recipeId}/{imageId}"
         access = getRecipeUserAccess(userId=current_user.id, recipeId=recipeId)
         if access != None:
             if path.isfile(imagePath):
@@ -558,8 +558,8 @@ async def deleteFile(
         recipeId = data['recipeId']
         imageId = data['imageId']
 
-        imagePath = f"../storage/{recipeId}/{imageId}"
-        folderPath = f"../storage/{recipeId}"
+        imagePath = f"storage/{recipeId}/{imageId}"
+        folderPath = f"storage/{recipeId}"
         access = getRecipeUserAccess(userId=current_user.id, recipeId=recipeId)
         if access != None and access > 0:
             if path.isfile(imagePath):
