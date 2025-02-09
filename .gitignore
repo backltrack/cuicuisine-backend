@@ -4,6 +4,7 @@ credentials.json
 token.pickle
 private_key.pem
 /tls/*
+.docker-env
 
 .vscode
 

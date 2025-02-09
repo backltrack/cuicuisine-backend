@@ -55,6 +55,7 @@ subjectAltName = @alt_names
 DNS.1 = mycuicuisine.duckdns.org
 IP.1 = 192.168.1.28
 IP.2 = 192.168.1.48
+IP.2 = 192.168.1.61
 IP.3 = 192.168.156.248" > tls/san.cnf
 
 openssl req -x509 -nodes -days 730 -newkey rsa:2048 -keyout tls/cuicuisine.key -out tls/cuicuisine.crt -config tls/san.cnf

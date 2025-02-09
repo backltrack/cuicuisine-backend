@@ -19,4 +19,4 @@ if [ ! -d "$db" ]; then
     mkdir "$db"
 fi
 
-docker compose --env-file .docker-env up -d --build
+docker compose --env-file .docker-env up --build
