@@ -3,9 +3,11 @@
 root="$HOME/cuicuisine-data/"
 storage="$root/storage/"
 db="$root/db/"
+mongovers="4.4.18"
 
 echo "STORAGE=$storage
-DB=$db" > .docker-env
+DB=$db
+MONGOVERS=$mongovers" > .docker-env
 
 if [ ! -d "$root" ]; then
     mkdir "$root"
