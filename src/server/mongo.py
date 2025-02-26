@@ -99,7 +99,7 @@ def removeAllRecoveriesForEmail(email: str):
     return True
 
 # USER
-def getUserById(id: str) -> DbUser:
+def getUserById(id: str) -> DbUser|None:
     user = users_collection.find_one_by_id(ObjectId(id))
 
     if isinstance(user, DbUser):

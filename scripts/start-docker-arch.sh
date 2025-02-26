@@ -21,4 +21,6 @@ if [ ! -d "$db" ]; then
     mkdir "$db"
 fi
 
+chmod -R 777 $root
+
 docker compose --env-file .docker-env up -d --build

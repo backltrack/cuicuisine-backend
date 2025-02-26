@@ -252,12 +252,13 @@ async def register_for_access_token(
         )
 
 
-@app.post("/refresh_token", response_model=Token)
+@app.post("/refresh_token", response_model=Token|None)
 async def refresh_access_token(form_data: Annotated[MyOAuth2RefreshRequestForm, Depends()]):
     id, exp = validate_refresh_token(form_data.refresh_token)
-    access_token, access_token_expiration_time = create_access_token(data={"sub": id})
-    return {"access_token": access_token, "refresh_token": form_data.refresh_token, "token_type": "bearer"} #, "expires_in": int(access_token_expiration_time.timestamp()), "refresh_token_expires_in": int(exp.timestamp())}
-
+    if getUserById(id):
+        access_token, access_token_expiration_time = create_access_token(data={"sub": id})
+        return {"access_token": access_token, "refresh_token": form_data.refresh_token, "token_type": "bearer"} #, "expires_in": int(access_token_expiration_time.timestamp()), "refresh_token_expires_in": int(exp.timestamp())}
+    return None
 
 @app.post("/change/add", status_code=status.HTTP_200_OK, response_model=bool)
 async def add_change(
