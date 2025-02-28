@@ -21,8 +21,11 @@ services:
       - MONGO_ALIAS=mongodb
       - MONGO_PORT=27017
       - ENV=production
+      - LOGLEVEL=${LOGLEVEL}
+      - LOGDIRPATH=${LOGDIRPATH}
     volumes:
       - ${STORAGE}:/app/storage/:rw
+      - ${LOGDIRPATH}:/app/logs/:rw
       # - server-data:/app/storage
       # - ./certbot/www:/var/www/certbot/:ro
       # - ./certbot/conf/:/app/ca/:ro

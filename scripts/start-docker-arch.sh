@@ -1,13 +1,17 @@
 #! /bin/bash
 
-root="$HOME/cuicuisine-data/"
-storage="$root/storage/"
-db="$root/db/"
+root="$HOME/cuicuisine-data"
+storage="$root/storage"
+db="$root/db"
+logdirpath="$root/logs"
 mongovers="latest"
+loglevel="DEBUG"
 
 echo "STORAGE=$storage
 DB=$db
-MONGOVERS=$mongovers" > .docker-env
+MONGOVERS=$mongovers
+LOGLEVEL=$loglevel
+LOGDIRPATH=$logdirpath" > .docker-env
 
 if [ ! -d "$root" ]; then
     mkdir "$root"
@@ -19,6 +23,10 @@ fi
 
 if [ ! -d "$db" ]; then
     mkdir "$db"
+fi
+
+if [ ! -d "$logdirpath" ]; then
+    mkdir "$logdirpath"
 fi
 
 chmod -R 777 $root

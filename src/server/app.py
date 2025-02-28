@@ -1,3 +1,4 @@
+import logging
 from typing_extensions import Annotated
 from fastapi import FastAPI, status, Body, Depends, File, UploadFile
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -18,10 +19,28 @@ import random, string
 from server.email_sender import GmailSender
 
 from datetime import timedelta, datetime, timezone
-from os import path, mkdir, remove, listdir, rmdir, getcwd
+from os import path, mkdir, remove, listdir, rmdir
 
 from server.model import *
 from server.mongo import *
+
+from server.debugLog import DebugLog
+
+from dotenv import load_dotenv
+from os import getenv
+
+load_dotenv()
+
+# Logging
+logLevel = getenv("LOGLEVEL")
+
+if not logLevel:
+    level = logging.INFO
+else:
+    level = logging.getLevelNamesMapping()[logLevel]
+
+log = DebugLog(log_level=level)
+log.info("Starting Cuicuisine server")
 
 # to get a string like this run:
 # openssl rand -hex 32
@@ -30,8 +49,6 @@ SECRET_KEY_REFRESH = "ma4sh6puq5cyq7xgw798472pqdyshs2cxo4uj9xjsk62smq4epuyctzw92
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_SECONDES = 3600
 REFRESH_TOKEN_EXPIRE_DAYS = 365
-
-
 
 # Instantiate the FastAPI
 app = FastAPI()
