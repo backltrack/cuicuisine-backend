@@ -24,6 +24,7 @@ LOGDIRPATH=$logdirpath" > .docker-env
 # Check if directories exist
 if [ ! -d "$root" ]; then
     mkdir "$root"
+    chmod -R 777 $root
 fi
 
 if [ ! -d "$storage" ]; then
@@ -37,8 +38,6 @@ fi
 if [ ! -d "$logdirpath" ]; then
     mkdir "$logdirpath"
 fi
-
-chmod -R 777 $root
 
 # Start docker
 docker compose --env-file .docker-env up --build
