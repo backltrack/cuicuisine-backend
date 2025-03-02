@@ -4,6 +4,7 @@ from fastapi import FastAPI, status, Body, Depends, File, UploadFile
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse, FileResponse
+from fastapi.logger import logger as fastapi_logger
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from typing import Annotated
@@ -63,7 +64,6 @@ class InvalidPasswordException(Exception):
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request, exc):
-    print(exc.detail)
     if exc.status_code == status.HTTP_401_UNAUTHORIZED:
         return JSONResponse(({"error": "unauthorized_client", "error_description": exc.detail}), status_code=exc.status_code)
     else:
@@ -151,7 +151,7 @@ def create_access_token(data: dict | None = None):
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(seconds=ACCESS_TOKEN_EXPIRE_SECONDES)
     to_encode.update({"exp": expire})
-    print(to_encode)
+    log.debug(to_encode)
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY_ACCESS, algorithm=ALGORITHM)
     return encoded_jwt, expire
 
@@ -159,9 +159,9 @@ def create_refresh_token(data: dict | None = None):
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire})
-    print(to_encode)
+    log.debug(to_encode)
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY_REFRESH, algorithm=ALGORITHM)
-    print(encoded_jwt)
+    log.debug(encoded_jwt)
     return encoded_jwt, expire
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
@@ -227,7 +227,7 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     except Exception as e:
-        print(e)
+        log.debug(e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="unauthorized",
@@ -282,8 +282,8 @@ async def add_change(
     current_user: Annotated[User, Depends(get_current_active_user)],
     json_data: dict = Body(...)
 ):
-    print(json_data)
-    print(f"operation type: {json_data['operationType']}")
+    log.debug(json_data)
+    log.debug(f"operation type: {json_data['operationType']}")
     if 'objectType' in json_data.keys() and 'objectId' in json_data.keys() and 'changeId' in json_data.keys() and 'operationType' in json_data.keys():
         return addChange(changeId=json_data['changeId'], objectType=json_data['objectType'], operationType=int(json_data['operationType']), objectId=json_data['objectId'])
     return False

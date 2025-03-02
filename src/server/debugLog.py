@@ -5,13 +5,14 @@ from datetime import datetime as dt
 
 class DebugLog:
     def __init__(self, log_dir='/app/logs', log_level=logging.DEBUG):
-        self.logger = logging.getLogger('uvicorn.error')
+        self.fastapi_logger = logging.getLogger('uvicorn.error')
+        self.fastapi_logger.setLevel(log_level)
+        self.logger = logging.getLogger('uvicorn.access')
         self.logger.setLevel(log_level)
         self.isEnabled = True
 
         # Create the log directory if it doesn't exist
         logDir = Path(log_dir)
-        print(logDir)
         if not logDir.exists():
             mkdir(log_dir)
 
@@ -32,6 +33,7 @@ class DebugLog:
         console_handler.setFormatter(formatter)
         
         # Add handlers to the logger
+        self.fastapi_logger.addHandler(file_handler)
         self.logger.addHandler(file_handler)
         self.logger.addHandler(console_handler)
     

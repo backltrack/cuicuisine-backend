@@ -40,23 +40,24 @@ def addChange(changeId: str, objectType: str, operationType: int, objectId: str)
     return True
 
 def getChangesAfter(changeId: str, userId: str):
-    lastChange: Change = changes_collection.find_one_by({'changeId': changeId})
-    newChanges = changes_collection.find_by({'creationDate': {'$gt': lastChange.creationDate}})
-
     newUserChanges = []
 
-    userBookIds = getUserBooksId(userId)
-    
-    for change in newChanges:
-        if change.objectType == 'user':
-            if change.objectId == userId:
-                newUserChanges.append(change.model_dump())
-        elif change.objectType == 'book':
-            if change.objectId in userBookIds:
-                newUserChanges.append(change.model_dump())
-        elif change.objectType == 'recipe':
-            if str(getRecipeBook(change.objectId).id) in userBookIds:
-                newUserChanges.append(change.model_dump())
+    lastChange: Change = changes_collection.find_one_by({'changeId': changeId})
+    if lastChange:
+        newChanges = changes_collection.find_by({'creationDate': {'$gt': lastChange.creationDate}})
+
+        userBookIds = getUserBooksId(userId)
+        
+        for change in newChanges:
+            if change.objectType == 'user':
+                if change.objectId == userId:
+                    newUserChanges.append(change.model_dump())
+            elif change.objectType == 'book':
+                if change.objectId in userBookIds:
+                    newUserChanges.append(change.model_dump())
+            elif change.objectType == 'recipe':
+                if str(getRecipeBook(change.objectId).id) in userBookIds:
+                    newUserChanges.append(change.model_dump())
     
     return newUserChanges
 
