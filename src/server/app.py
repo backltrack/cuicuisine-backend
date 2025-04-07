@@ -1,10 +1,11 @@
 import logging
+from fastapi.staticfiles import StaticFiles
 from typing_extensions import Annotated
-from fastapi import FastAPI, status, Body, Depends, File, UploadFile
+from fastapi import FastAPI, status, Body, Depends, UploadFile
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse, FileResponse
-from fastapi.logger import logger as fastapi_logger
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from typing import Annotated
@@ -40,7 +41,7 @@ if not logLevel:
 else:
     level = logging.getLevelNamesMapping()[logLevel]
 
-log = DebugLog(log_level=level)
+log = DebugLog(log_level=level) if getenv("ENV") == "production" else DebugLog(log_dir=getenv("LOGDIRPATH"), log_level=level)
 log.info("Starting Cuicuisine server")
 
 # to get a string like this run:
@@ -53,6 +54,21 @@ REFRESH_TOKEN_EXPIRE_DAYS = 365
 
 # Instantiate the FastAPI
 app = FastAPI()
+app.mount("/ui", StaticFiles(directory="static",html=True))
+
+# CORS
+origins = [
+    "https://localhost:8000",
+    "*"
+]
+
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=origins,
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"]
+# )
 
 # Handle exceptions
 class InvalidEmailException(Exception):

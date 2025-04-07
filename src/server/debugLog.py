@@ -5,9 +5,11 @@ from datetime import datetime as dt
 
 class DebugLog:
     def __init__(self, log_dir='/app/logs', log_level=logging.DEBUG):
-        self.fastapi_logger = logging.getLogger('uvicorn.error')
-        self.fastapi_logger.setLevel(log_level)
-        self.logger = logging.getLogger('uvicorn.access')
+        self.fastapi_logger_error = logging.getLogger('uvicorn.error')
+        self.fastapi_logger_error.setLevel(log_level)
+        self.fastapi_logger_access = logging.getLogger('uvicorn.access')
+        self.fastapi_logger_access.setLevel(log_level)
+        self.logger = logging.getLogger('cuicuisine')
         self.logger.setLevel(log_level)
         self.isEnabled = True
 
@@ -33,7 +35,8 @@ class DebugLog:
         console_handler.setFormatter(formatter)
         
         # Add handlers to the logger
-        self.fastapi_logger.addHandler(file_handler)
+        self.fastapi_logger_error.addHandler(file_handler)
+        self.fastapi_logger_access.addHandler(file_handler)
         self.logger.addHandler(file_handler)
         self.logger.addHandler(console_handler)
     
