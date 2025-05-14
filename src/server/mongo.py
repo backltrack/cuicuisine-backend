@@ -196,10 +196,30 @@ def updateBook(id: str, data: dict):
         return False, ''
     
 def updateBookSet(id: str, data: dict):
+    """Replace value from book field"""
     return updateBook(id, {'$set': data})
 
+def updateBookPush(id: str, data: dict):
+    """Append book field with values"""
+    return updateBook(id, {'$push': data})
+
 def updateBookPull(id: str, data: dict):
+    """Delete value from book field"""
     return updateBook(id, {'$pull': data})
+
+def joinBook(bookId: str, userId: str):
+    try:
+        updateBookPush(bookId, {
+            "users": userId
+        })
+        updateBookSet(bookId, {
+            f"access.{userId}": AccessLevel.READ
+        })
+
+        
+    except Exception as e:
+        print(e)
+        return False
 
 def deleteBook(id: str):
     try:

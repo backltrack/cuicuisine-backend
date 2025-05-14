@@ -429,7 +429,7 @@ async def get_book_usernames(
 ):
     book: Book = getBookById(id)
     if book:
-        if str(current_user.id) in book.users and book.access[str(current_user.id)] == 2:
+        if str(current_user.id) in book.users and book.access[str(current_user.id)] == AccessLevel.OWN:
             usernames = {}
             for userId in book.users:
                 user = getUserById(userId)
@@ -450,7 +450,7 @@ async def update_book(
 
     if book:
         if str(current_user.id) in book.users:
-            if book.access[str(current_user.id)] > 1:
+            if book.access[str(current_user.id)] >= AccessLevel.WRITE:
                 result, lastUpdate = updateBookSet(id, data)
                 if result:
                     return {'result': True, 'dateTime': lastUpdate}
@@ -480,7 +480,7 @@ async def delete_book(
     if id != "":
         book = getBookById(id)
         if isinstance(book, Book):
-            if str(current_user.id) in book.users and book.access[str(current_user.id)] == 2:
+            if str(current_user.id) in book.users and book.access[str(current_user.id)] == AccessLevel.OWN:
                 return deleteBook(id)
     
     return False
@@ -509,7 +509,7 @@ async def update_recipe(
 
     access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
     
-    if access != None and access > 0:
+    if access != None and access >= AccessLevel.WRITE:
         ack, lastUpdate = updateRecipe(id, data)
         if ack:
             return {'result': True, 'dateTime': lastUpdate}
@@ -524,7 +524,7 @@ async def create_recipe(
     book = getBookById(form_data.bookId)
 
     if book and str(current_user.id) in book.users:
-        if book.access[str(current_user.id)] > AccessLevel.READ:
+        if book.access[str(current_user.id)] >= AccessLevel.WRITE:
             ack, lastUpdate = addRecipe(id=form_data.id, name=form_data.name)
             
             if ack:
@@ -533,6 +533,24 @@ async def create_recipe(
                 return {'result': True, 'lastUpdate': lastUpdate}
     
     return {'result': False}
+
+@app.get('/books/join/{id}', response_model=bool)
+async def join_book(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    id: str
+):
+    book: Book = getBookById(id)
+    if book:
+        if str(current_user.id) not in book.users:
+            joinBook(id, str(current_user.id))
+            addChange(
+                changeId=str(ObjectId()),
+                objectType='book',
+                operationType=OperationType.UPDATE,
+                objectId=id
+            )
+            return True
+    return False
 
 @app.delete('/recipes/delete', response_description="Delete recipe", status_code=status.HTTP_200_OK, response_model=bool)
 async def recipe(
@@ -543,7 +561,7 @@ async def recipe(
         recipe = getRecipeById(id)
         if isinstance(recipe, Recipe):
             access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
-            if access != None and access > 1:
+            if access != None and access == AccessLevel.OWN:
                 return deleteRecipe(id)
     
     return False
@@ -595,7 +613,7 @@ async def deleteFile(
         imagePath = f"storage/{recipeId}/{imageId}"
         folderPath = f"storage/{recipeId}"
         access = getRecipeUserAccess(userId=current_user.id, recipeId=recipeId)
-        if access != None and access > 0:
+        if access != None and access >= AccessLevel.WRITE:
             if path.isfile(imagePath):
                 remove(imagePath)
                 if len(listdir(folderPath)) == 0:
