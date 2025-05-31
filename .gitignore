@@ -1,3 +1,4 @@
+
 /tests/*
 /storage/*
 credentials.json
@@ -21,7 +22,6 @@ __pycache__/
 build/
 develop-eggs/
 dist/
-downloads/
 eggs/
 .eggs/
 lib/

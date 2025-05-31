@@ -1,10 +1,10 @@
 import logging
 from fastapi.staticfiles import StaticFiles
 from typing_extensions import Annotated
-from fastapi import FastAPI, status, Body, Depends, UploadFile
+from fastapi import FastAPI, status, Body, Depends, UploadFile, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.exceptions import HTTPException
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -55,6 +55,7 @@ REFRESH_TOKEN_EXPIRE_DAYS = 365
 # Instantiate the FastAPI
 app = FastAPI()
 app.mount("/ui", StaticFiles(directory="static",html=True))
+app.mount("/downloads", StaticFiles(directory="downloads",html=False))
 
 # CORS
 origins = [
@@ -204,6 +205,11 @@ async def get_current_active_user(
 
 
 # routes
+@app.get("/")
+async def redirect_to_static(request: Request):
+    print(request.base_url)
+    return RedirectResponse(request.base_url.path + "ui/", status_code=302)
+
 @app.get("/test_connexion", response_model=bool)
 async def test_connection():
     return True

@@ -6,3 +6,10 @@ fi
 
 mkdir static/
 cp -r /run/media/nicolas/DATA/1-Documents/Programmation/Android/cuicuisine/build/web/* static/
+
+if [ -d "downloads/" ]; then
+    rm -rf downloads/
+fi
+
+mkdir downloads/
+cp -r /run/media/nicolas/DATA/1-Documents/Programmation/Android/cuicuisine/build/app/outputs/flutter-apk/cuicuisine-*.apk downloads/
