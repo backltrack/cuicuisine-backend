@@ -626,3 +626,14 @@ async def deleteFile(
                     rmdir(folderPath)
                 return True
     return False
+
+@app.get("/apk/get_latest", status_code=status.HTTP_200_OK, response_model=str|None)
+async def get_latest():
+    """Get the latest APK version"""
+    for file in reversed(listdir("downloads/")):
+        print(file)
+        if file.endswith(".apk"):
+            return "/downloads/" + file
+    # if apk_path:
+    #     return FileResponse(path=apk_path, media_type='application/vnd.android.package-archive', filename="cuicuisine.apk")
+    # return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": "APK not found"})
