@@ -1,6 +1,7 @@
 
 /tests/*
 /storage/*
+/logs/*
 credentials.json
 token.pickle
 private_key.pem
@@ -24,7 +25,6 @@ develop-eggs/
 dist/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -143,4 +143,3 @@ bin
 include
 lib64
 
-/storage/*
