@@ -189,8 +189,9 @@ def addBook(id: ObjectId, name: str, recipeIds: list[str], users: list[str], acc
 def updateBook(id: str, data: dict):
     try:
         result = books_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update=data)
-        books_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update={'$set': {'lastUpdate': datetime.now(timezone.utc)}})
-        return True, data['lastUpdate']
+        time_now = datetime.now(timezone.utc)
+        books_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update={'$set': {'lastUpdate': time_now}})
+        return True, time_now
     except Exception as e:
         print(e)
         return False, ''
