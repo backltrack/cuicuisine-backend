@@ -463,6 +463,27 @@ async def update_book(
     
     return {'result': False}
 
+@app.get('/books/revokeme/{id}', response_description="Remove user from book", status_code=status.HTTP_200_OK, response_model=dict)
+async def revoke_me_from_book(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    id: str
+):
+    book: Book = getBookById(id)
+    if book:
+        if str(current_user.id) in book.users and book.access[str(current_user.id)] != AccessLevel.OWN:
+            # Owner can not remove himself
+            book.users.remove(str(current_user.id))
+            book.access.pop(str(current_user.id), None)
+            data = {
+                'users': book.users,
+                'access': book.access
+            }
+            result, lastUpdate = updateBookSet(id, data)
+            if result:
+                return {'result': True, 'dateTime': lastUpdate}
+    
+    return {'result': False}
+
 @app.put('/books/create', response_description="Create book", status_code=status.HTTP_201_CREATED, response_model=dict)
 async def create_book(
     current_user: Annotated[User, Depends(get_current_active_user)],

@@ -1,6 +1,6 @@
 [Unit]
 Description=Cuicuisine server
-After=network.target
+After=network.target docker.service
 
 [Service]
 ExecStart=/bin/bash /home/sucre/cuicuisine-backend/scripts/start-docker-rpi.sh
