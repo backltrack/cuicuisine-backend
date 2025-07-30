@@ -43,12 +43,14 @@ def getChangesAfter(changeId: str, userId: str):
     newUserChanges = []
 
     lastChange: Change = changes_collection.find_one_by({'changeId': changeId})
+    
     if lastChange:
         newChanges = changes_collection.find_by({'creationDate': {'$gt': lastChange.creationDate}})
 
         userBookIds = getUserBooksId(userId)
         
         for change in newChanges:
+            print(change.model_dump_json())
             if change.objectType == 'user':
                 if change.objectId == userId:
                     newUserChanges.append(change.model_dump())
@@ -58,7 +60,7 @@ def getChangesAfter(changeId: str, userId: str):
             elif change.objectType == 'recipe':
                 if str(getRecipeBook(change.objectId).id) in userBookIds:
                     newUserChanges.append(change.model_dump())
-    
+                    
     return newUserChanges
 
 def getLastUserChangeId(userId: str) -> str|None:

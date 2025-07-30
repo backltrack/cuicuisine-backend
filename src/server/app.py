@@ -315,7 +315,7 @@ async def get_changes(
     current_user: Annotated[User, Depends(get_current_active_user)],
     id: str
 ):
-    changes = getChangesAfter(changeId=id, userId=current_user.id)
+    changes = getChangesAfter(changeId=id, userId=str(current_user.id))
     if changes:
         return {'result': True, 'changes': changes}
     
