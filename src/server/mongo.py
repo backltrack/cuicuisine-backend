@@ -43,6 +43,9 @@ def getChangesAfter(changeId: str, userId: str):
     newUserChanges = []
 
     lastChange: Change = changes_collection.find_one_by({'changeId': changeId})
+
+    if not lastChange:
+        return False, newUserChanges
     
     if lastChange:
         newChanges = changes_collection.find_by({'creationDate': {'$gt': lastChange.creationDate}})
@@ -61,7 +64,7 @@ def getChangesAfter(changeId: str, userId: str):
                 if str(getRecipeBook(change.objectId).id) in userBookIds:
                     newUserChanges.append(change.model_dump())
                     
-    return newUserChanges
+    return True, newUserChanges
 
 def getLastUserChangeId(userId: str) -> str|None:
     userBookIds = getUserBooksId(userId)
@@ -119,7 +122,8 @@ def updateUser(id: str, data: dict):
         data['lastUpdate'] = datetime.now(timezone.utc)
         
         result = users_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update={'$set': data})
-        return result.modified_count > 0, data['lastUpdate']
+        print("User updated:", result.acknowledged)
+        return result.acknowledged, data['lastUpdate']
     except Exception as e:
         print(e)
         return None
@@ -152,7 +156,7 @@ def deleteUser(id: str) -> bool:
                 deleteBook(book.id)
         # delete user
         result = users_collection.delete_by_id(ObjectId(id))
-        return True
+        return result.acknowledged
     except Exception as e:
         print(e)
         return False
@@ -182,6 +186,7 @@ def addBook(id: ObjectId, name: str, recipeIds: list[str], users: list[str], acc
             access=access,
             lastUpdate=currentTime
         ))
+        print("Book added:", result.acknowledged)
         return True, currentTime
     except Exception as e:
         print(e)
@@ -193,7 +198,7 @@ def updateBook(id: str, data: dict):
         result = books_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update=data)
         time_now = datetime.now(timezone.utc)
         books_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update={'$set': {'lastUpdate': time_now}})
-        return True, time_now
+        return result.acknowledged, time_now
     except Exception as e:
         print(e)
         return False, ''
@@ -232,7 +237,7 @@ def deleteBook(id: str):
             if (isinstance(recipe, Recipe)):
                 recipes_collection.delete_by_id(ObjectId(recipeId))
         result = books_collection.delete_by_id(ObjectId(id))
-        return True
+        return result.acknowledged
 
     except Exception as e:
         print(e)
@@ -258,7 +263,8 @@ def addRecipe(id: ObjectId, name: str):
             creationDate=currentTime,
             lastUpdate=currentTime
         ))
-        return True, currentTime
+        print("Recipe added:", result.acknowledged)
+        return result.acknowledged, currentTime
     except Exception as e:
         print(e)
         return False, currentTime
@@ -269,7 +275,7 @@ def updateRecipe(id: str, data: dict):
         dateNow = datetime.now(timezone.utc)
         result = recipes_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update={'$set': jsonable_encoder(data)})
         recipes_collection.get_collection().update_one(filter={"_id": ObjectId(id)}, update={'$set': {'lastUpdate': dateNow}})
-        return True, dateNow
+        return result.acknowledged, dateNow
     except Exception as e:
         print(e)
         return False, ''
@@ -294,7 +300,8 @@ def deleteRecipe(id: str):
         if book:
             updateBookPull(book.id, {'recipeIds': id})
         result = recipes_collection.delete_by_id(ObjectId(id))
-        return True
+        print("Recipe deleted:", result.acknowledged)
+        return result.acknowledged
 
     except Exception as e:
         print(e)

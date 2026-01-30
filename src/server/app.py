@@ -43,6 +43,8 @@ else:
 
 log = DebugLog(log_level=level) if getenv("ENV") == "production" else DebugLog(log_dir=getenv("LOGDIRPATH"), log_level=level)
 log.info("Starting Cuicuisine server")
+log.info(f"Log level set to: {level}")
+log.debug("This is a debug log")
 
 # to get a string like this run:
 # openssl rand -hex 32
@@ -315,11 +317,8 @@ async def get_changes(
     current_user: Annotated[User, Depends(get_current_active_user)],
     id: str
 ):
-    changes = getChangesAfter(changeId=id, userId=str(current_user.id))
-    if changes:
-        return {'result': True, 'changes': changes}
-    
-    return {'result': False}
+    result, changes = getChangesAfter(changeId=id, userId=str(current_user.id))
+    return {'result': result, 'changes': changes}
     
 
 @app.get("/users/me", response_model=User)
@@ -393,18 +392,20 @@ async def update_user_me(
     data = update.dump()
     id = data.pop('id')
     
-    result, lastUpdate = updateUser(str(current_user.id), data)
+    ack, lastUpdate = updateUser(str(current_user.id), data)
 
-    if result:
-        return {'result': True, 'dateTime': lastUpdate}
-    
-    return {'result': False}
+    if ack:
+        return {'result': True, 'status_code': status.HTTP_200_OK, 'dateTime': lastUpdate}
+    return {'result': False, 'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR}
 
-@app.delete('/users/me/delete', response_description="Delete user", status_code=status.HTTP_200_OK, response_model=bool)
+@app.delete('/users/me/delete', response_description="Delete user", status_code=status.HTTP_200_OK, response_model=dict)
 async def delete_user_me(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
-    return deleteUser(current_user.id)
+    ack = deleteUser(current_user.id)
+    if ack:
+        return {'result': True, 'status_code': status.HTTP_200_OK}
+    return {'result': False, 'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR}
 
 @app.get('/users/me/fetchall', response_model=dict)
 async def fetch_all(
@@ -457,11 +458,12 @@ async def update_book(
     if book:
         if str(current_user.id) in book.users:
             if book.access[str(current_user.id)] >= AccessLevel.WRITE:
-                result, lastUpdate = updateBookSet(id, data)
-                if result:
-                    return {'result': True, 'dateTime': lastUpdate}
-    
-    return {'result': False}
+                ack, lastUpdate = updateBookSet(id, data)
+                if ack:
+                    return {'result': True, 'status_code': status.HTTP_200_OK, 'dateTime': lastUpdate}
+                return {'result': False, 'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR}
+        return {'result': False, 'status_code': status.HTTP_403_FORBIDDEN}
+    return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
 
 @app.get('/books/revokeme/{id}', response_description="Remove user from book", status_code=status.HTTP_200_OK, response_model=dict)
 async def revoke_me_from_book(
@@ -496,10 +498,11 @@ async def create_book(
         users=[str(current_user.id)],
         access={str(current_user.id): 2}
     )
-    
-    return {'result': True, 'lastUpdate': lastUpdate}
+    if ack:
+        return {'result': True, 'status_code': status.HTTP_200_OK,'lastUpdate': lastUpdate}  
+    return {'result': False, 'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR}
 
-@app.delete('/books/delete', response_description="Delete book", status_code=status.HTTP_200_OK, response_model=bool)
+@app.delete('/books/delete', response_description="Delete book", status_code=status.HTTP_200_OK, response_model=dict)
 async def delete_book(
     current_user: Annotated[User, Depends(get_current_active_user)],
     id: str = Body(...)
@@ -508,9 +511,13 @@ async def delete_book(
         book = getBookById(id)
         if isinstance(book, Book):
             if str(current_user.id) in book.users and book.access[str(current_user.id)] == AccessLevel.OWN:
-                return deleteBook(id)
-    
-    return False
+                ack = deleteBook(id)
+                if ack:
+                    return {'result': True, 'status_code': status.HTTP_200_OK}
+                return {'result': False, 'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR}
+            return {'result': False, 'status_code': status.HTTP_403_FORBIDDEN}
+        return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
+    return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
 
 
 @app.get('/recipes/get/{id}', response_model=Recipe|None)
@@ -539,9 +546,10 @@ async def update_recipe(
     if access != None and access >= AccessLevel.WRITE:
         ack, lastUpdate = updateRecipe(id, data)
         if ack:
-            return {'result': True, 'dateTime': lastUpdate}
+            return {'result': True, 'status_code': status.HTTP_200_OK, 'dateTime': lastUpdate}
+        return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
     
-    return {'result': False}
+    return {'result': False, 'status_code': status.HTTP_403_FORBIDDEN}
 
 @app.put('/recipes/create', response_description="Create recipe", status_code=status.HTTP_201_CREATED, response_model=dict)
 async def create_recipe(
@@ -549,17 +557,22 @@ async def create_recipe(
     form_data: Annotated[AddRecipeRequestForm, Depends()]
 ):
     book = getBookById(form_data.bookId)
+    if not book:
+        return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
 
-    if book and str(current_user.id) in book.users:
+    if str(current_user.id) in book.users:
         if book.access[str(current_user.id)] >= AccessLevel.WRITE:
-            ack, lastUpdate = addRecipe(id=form_data.id, name=form_data.name)
-            
-            if ack:
-                book.recipeIds.append(str(form_data.id))
-                ack, _ = updateBookSet(book.id, {'recipeIds': book.recipeIds})
-                return {'result': True, 'lastUpdate': lastUpdate}
+            ack_recipe, lastUpdate = addRecipe(id=form_data.id, name=form_data.name)
+            if not ack_recipe:
+                return {'result': False, 'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR}
+
+            book.recipeIds.append(str(form_data.id))
+            ack_book, _ = updateBookSet(book.id, {'recipeIds': book.recipeIds})
+            if ack_book:
+                return {'result': True, 'status_code': status.HTTP_200_OK,'lastUpdate': lastUpdate}
+            return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
     
-    return {'result': False}
+    return {'result': False, 'status_code': status.HTTP_403_FORBIDDEN}
 
 @app.get('/books/join/{id}', response_model=bool)
 async def join_book(
@@ -579,7 +592,7 @@ async def join_book(
             return True
     return False
 
-@app.delete('/recipes/delete', response_description="Delete recipe", status_code=status.HTTP_200_OK, response_model=bool)
+@app.delete('/recipes/delete', response_description="Delete recipe", status_code=status.HTTP_200_OK, response_model=dict)
 async def recipe(
     current_user: Annotated[User, Depends(get_current_active_user)],
     id: str = Body(...)
@@ -589,12 +602,16 @@ async def recipe(
         if isinstance(recipe, Recipe):
             access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
             if access != None and access == AccessLevel.OWN:
-                return deleteRecipe(id)
-    
-    return False
+                ack = deleteRecipe(id)
+                if ack:
+                    return {'result': True, 'status_code': status.HTTP_200_OK}
+                return {'result': False, 'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR}
+            return {'result': False, 'status_code': status.HTTP_403_FORBIDDEN}
+        return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
+    return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
 
 ## Images
-@app.post("/image/upload", status_code=status.HTTP_200_OK, response_model=bool)
+@app.post("/image/upload", status_code=status.HTTP_200_OK, response_model=dict)
 async def uploadFile(
     current_user: Annotated[User, Depends(get_current_active_user)],
     file: UploadFile,
@@ -611,9 +628,9 @@ async def uploadFile(
             content = await file.read()
             out_file.write(content)
         
-        return True
+        return {'result': True, 'status_code': status.HTTP_200_OK}
     except Exception as e:
-        return  False
+        return  {'result': False, 'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR}
 
 @app.get("/image/download/{recipeId}/{imageId}", status_code=status.HTTP_200_OK)
 async def downloadFile(
@@ -628,7 +645,7 @@ async def downloadFile(
             if path.isfile(imagePath):
                 return FileResponse(path=imagePath, media_type='application/octet-stream', filename=imageId)
 
-@app.delete("/image/delete", status_code=status.HTTP_200_OK, response_model=bool)
+@app.delete("/image/delete", status_code=status.HTTP_200_OK, response_model=dict)
 async def deleteFile(
     current_user: Annotated[User, Depends(get_current_active_user)],
     data: dict = Body(...)
@@ -645,8 +662,10 @@ async def deleteFile(
                 remove(imagePath)
                 if len(listdir(folderPath)) == 0:
                     rmdir(folderPath)
-                return True
-    return False
+                return {'result': True, 'status_code': status.HTTP_200_OK}
+            return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
+        return {'result': False, 'status_code': status.HTTP_403_FORBIDDEN}
+    return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
 
 @app.get("/apk/get_latest", status_code=status.HTTP_200_OK, response_model=str|None)
 async def get_latest():
