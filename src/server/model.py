@@ -11,6 +11,13 @@ from datetime import datetime
 
 from enum import IntEnum
 
+class UpdateStatusCode(IntEnum):
+    SUCCESS = 0
+    NOT_AUTHORIZED = 1
+    OBJECT_NOT_FOUND = 2
+    CONFLICT = 3
+    SERVER_ERROR = 4
+
 class OperationType(IntEnum):
     CREATE = 0
     DELETE = 1
@@ -141,6 +148,7 @@ class UpdateUserRequest(BaseModel, RequestBase):
     name: str|None = None
     email: str|None = None
     favoriteRecipes: list[str]|None = None
+    requestDate: str|None = None
 
 class NewUserPasswordRequest(BaseModel, RequestBase):
     old_pwd: str
@@ -173,6 +181,7 @@ class UpdateBookRequest(BaseModel, RequestBase):
         recipeIds: list[str]|None = None
         users: list[str]|None = None
         access: dict[str, int]|None = None
+        requestDate: str|None = None
 
 class AddRecipeRequestForm:
     def __init__(
@@ -207,6 +216,7 @@ class UpdateRecipeRequest(BaseModel, RequestBase):
         recipeIngredients: list[Ingredient]|None = None,
         steps: list[RecipeStep]|None = None,
         variants: list[Variant]|None = None
+        requestDate: str|None = None
 
 
 class MyOAuth2RefreshRequestForm:

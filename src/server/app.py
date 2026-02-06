@@ -318,6 +318,7 @@ async def get_changes(
     id: str
 ):
     result, changes = getChangesAfter(changeId=id, userId=str(current_user.id))
+    log.debug(f"Changes fetched:  result={result}, changes={changes}")
     return {'result': result, 'changes': changes}
     
 
@@ -391,12 +392,19 @@ async def update_user_me(
     update = UpdateUserRequest(**json_data)
     data = update.dump()
     id = data.pop('id')
+    requestDate = datetime.fromisoformat(data.pop('requestDate', None)) if 'requestDate' in data else None
+
+    user = getUserById(id)
+    if not user:
+        return {'result': False, 'status_code': UpdateStatusCode.OBJECT_NOT_FOUND}
+    if requestDate and user.lastUpdate > requestDate:
+        return {'result': False, 'status_code': UpdateStatusCode.CONFLICT}
     
     ack, lastUpdate = updateUser(str(current_user.id), data)
 
     if ack:
-        return {'result': True, 'status_code': status.HTTP_200_OK, 'dateTime': lastUpdate}
-    return {'result': False, 'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR}
+        return {'result': True, 'status_code': UpdateStatusCode.SUCCESS, 'dateTime': lastUpdate}
+    return {'result': False, 'status_code': UpdateStatusCode.SERVER_ERROR}
 
 @app.delete('/users/me/delete', response_description="Delete user", status_code=status.HTTP_200_OK, response_model=dict)
 async def delete_user_me(
@@ -404,8 +412,8 @@ async def delete_user_me(
 ):
     ack = deleteUser(current_user.id)
     if ack:
-        return {'result': True, 'status_code': status.HTTP_200_OK}
-    return {'result': False, 'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR}
+        return {'result': True, 'status_code': UpdateStatusCode.SUCCESS}
+    return {'result': False, 'status_code': UpdateStatusCode.SERVER_ERROR}
 
 @app.get('/users/me/fetchall', response_model=dict)
 async def fetch_all(
@@ -435,12 +443,15 @@ async def get_book_usernames(
     id: str
 ):
     book: Book = getBookById(id)
+    print("Get users from book:", book)
     if book:
         if str(current_user.id) in book.users and book.access[str(current_user.id)] == AccessLevel.OWN:
+            print("User is owner, fetching usernames")
             usernames = {}
             for userId in book.users:
                 user = getUserById(userId)
                 usernames[userId] = user.name
+            print("Usernames fetched:", usernames)
             return usernames
     
 
@@ -452,18 +463,21 @@ async def update_book(
     update = UpdateBookRequest(**json_data)
     data = update.dump()
     id = data.pop('id')
+    requestDate = datetime.fromisoformat(data.pop('requestDate', None)) if 'requestDate' in data else None
 
     book = getBookById(id)
 
-    if book:
-        if str(current_user.id) in book.users:
-            if book.access[str(current_user.id)] >= AccessLevel.WRITE:
-                ack, lastUpdate = updateBookSet(id, data)
-                if ack:
-                    return {'result': True, 'status_code': status.HTTP_200_OK, 'dateTime': lastUpdate}
-                return {'result': False, 'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR}
-        return {'result': False, 'status_code': status.HTTP_403_FORBIDDEN}
-    return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
+    if not book:
+        return {'result': False, 'status_code': UpdateStatusCode.OBJECT_NOT_FOUND}
+    if str(current_user.id) in book.users:
+        if book.access[str(current_user.id)] >= AccessLevel.WRITE:
+            if requestDate and book.lastUpdate > requestDate:
+                return {'result': False, 'status_code': UpdateStatusCode.CONFLICT}
+            ack, lastUpdate = updateBookSet(id, data)
+            if ack:
+                return {'result': True, 'status_code': UpdateStatusCode.SUCCESS, 'dateTime': lastUpdate}
+            return {'result': False, 'status_code': UpdateStatusCode.SERVER_ERROR}
+    return {'result': False, 'status_code': UpdateStatusCode.NOT_AUTHORIZED}
 
 @app.get('/books/revokeme/{id}', response_description="Remove user from book", status_code=status.HTTP_200_OK, response_model=dict)
 async def revoke_me_from_book(
@@ -499,8 +513,8 @@ async def create_book(
         access={str(current_user.id): 2}
     )
     if ack:
-        return {'result': True, 'status_code': status.HTTP_200_OK,'lastUpdate': lastUpdate}  
-    return {'result': False, 'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR}
+        return {'result': True, 'status_code': UpdateStatusCode.SUCCESS,'lastUpdate': lastUpdate}  
+    return {'result': False, 'status_code': UpdateStatusCode.SERVER_ERROR}
 
 @app.delete('/books/delete', response_description="Delete book", status_code=status.HTTP_200_OK, response_model=dict)
 async def delete_book(
@@ -513,12 +527,11 @@ async def delete_book(
             if str(current_user.id) in book.users and book.access[str(current_user.id)] == AccessLevel.OWN:
                 ack = deleteBook(id)
                 if ack:
-                    return {'result': True, 'status_code': status.HTTP_200_OK}
-                return {'result': False, 'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR}
-            return {'result': False, 'status_code': status.HTTP_403_FORBIDDEN}
-        return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
-    return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
-
+                    return {'result': True, 'status_code': UpdateStatusCode.SUCCESS}
+                return {'result': False, 'status_code': UpdateStatusCode.SERVER_ERROR}
+            return {'result': False, 'status_code': UpdateStatusCode.NOT_AUTHORIZED}
+        return {'result': False, 'status_code': UpdateStatusCode.OBJECT_NOT_FOUND}
+    return {'result': False, 'status_code': UpdateStatusCode.OBJECT_NOT_FOUND}
 
 @app.get('/recipes/get/{id}', response_model=Recipe|None)
 async def get_recipe(
@@ -540,16 +553,28 @@ async def update_recipe(
     update = UpdateRecipeRequest(**json_data)
     data = update.dump()
     id = data.pop('id')
+    log.debug(data)
+    log.debug("requestDate exists ? " + str('requestDate' in data.keys()))
+    log.debug("requestDate value: " + str(data.get('requestDate', None)))
+    requestDate = datetime.fromisoformat(data.pop('requestDate', None))
 
     access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
     
     if access != None and access >= AccessLevel.WRITE:
+        recipe = getRecipeById(id)
+        if not recipe:
+            return {'result': False, 'status_code': int(UpdateStatusCode.OBJECT_NOT_FOUND)}
+        log.debug("requestDate: " + str(requestDate))
+        log.debug("recipe.lastUpdate: " + str(recipe.lastUpdate))
+        if requestDate and recipe.lastUpdate.astimezone(timezone.utc) > requestDate:
+            log.debug("Conflict detected")
+            return {'result': False, 'status_code': int(UpdateStatusCode.CONFLICT)}
         ack, lastUpdate = updateRecipe(id, data)
         if ack:
-            return {'result': True, 'status_code': status.HTTP_200_OK, 'dateTime': lastUpdate}
-        return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
+            return {'result': True, 'status_code': int(UpdateStatusCode.SUCCESS), 'dateTime': lastUpdate}
+        return {'result': False, 'status_code': int(UpdateStatusCode.SERVER_ERROR)}
     
-    return {'result': False, 'status_code': status.HTTP_403_FORBIDDEN}
+    return {'result': False, 'status_code': int(UpdateStatusCode.NOT_AUTHORIZED)}
 
 @app.put('/recipes/create', response_description="Create recipe", status_code=status.HTTP_201_CREATED, response_model=dict)
 async def create_recipe(
@@ -558,21 +583,21 @@ async def create_recipe(
 ):
     book = getBookById(form_data.bookId)
     if not book:
-        return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
+        return {'result': False, 'status_code': UpdateStatusCode.OBJECT_NOT_FOUND}
 
     if str(current_user.id) in book.users:
         if book.access[str(current_user.id)] >= AccessLevel.WRITE:
             ack_recipe, lastUpdate = addRecipe(id=form_data.id, name=form_data.name)
             if not ack_recipe:
-                return {'result': False, 'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR}
+                return {'result': False, 'status_code': UpdateStatusCode.SERVER_ERROR}
 
             book.recipeIds.append(str(form_data.id))
             ack_book, _ = updateBookSet(book.id, {'recipeIds': book.recipeIds})
             if ack_book:
-                return {'result': True, 'status_code': status.HTTP_200_OK,'lastUpdate': lastUpdate}
-            return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
+                return {'result': True, 'status_code': UpdateStatusCode.SUCCESS,'lastUpdate': lastUpdate}
+            return {'result': False, 'status_code': UpdateStatusCode.OBJECT_NOT_FOUND}
     
-    return {'result': False, 'status_code': status.HTTP_403_FORBIDDEN}
+    return {'result': False, 'status_code': UpdateStatusCode.NOT_AUTHORIZED}
 
 @app.get('/books/join/{id}', response_model=bool)
 async def join_book(
@@ -604,12 +629,11 @@ async def recipe(
             if access != None and access == AccessLevel.OWN:
                 ack = deleteRecipe(id)
                 if ack:
-                    return {'result': True, 'status_code': status.HTTP_200_OK}
-                return {'result': False, 'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR}
-            return {'result': False, 'status_code': status.HTTP_403_FORBIDDEN}
-        return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
-    return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
-
+                    return {'result': True, 'status_code': UpdateStatusCode.SUCCESS}
+                return {'result': False, 'status_code': UpdateStatusCode.SERVER_ERROR}
+            return {'result': False, 'status_code': UpdateStatusCode.NOT_AUTHORIZED}
+        return {'result': False, 'status_code': UpdateStatusCode.OBJECT_NOT_FOUND}
+    return {'result': False, 'status_code': UpdateStatusCode.OBJECT_NOT_FOUND}
 ## Images
 @app.post("/image/upload", status_code=status.HTTP_200_OK, response_model=dict)
 async def uploadFile(
@@ -617,6 +641,8 @@ async def uploadFile(
     file: UploadFile,
     info: Annotated[ImageInfoForm, Depends()]
 ):
+    log.debug(f"Uploading file: recipeId={info.recipeId}, imageId={info.imageId}, filename={file.filename}, content_type={file.content_type}")
+    print("test debug")
     if not path.exists("storage/"):
         mkdir("storage/")
     
@@ -627,10 +653,11 @@ async def uploadFile(
         with open(f"storage/{info.recipeId}/{info.imageId}", "wb") as out_file:
             content = await file.read()
             out_file.write(content)
-        
-        return {'result': True, 'status_code': status.HTTP_200_OK}
+        log.debug("File uploaded successfully")
+        return {'result': True, 'status_code': UpdateStatusCode.SUCCESS}
     except Exception as e:
-        return  {'result': False, 'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR}
+        log.debug("Error uploading file:", e)
+        return  {'result': False, 'status_code': UpdateStatusCode.SERVER_ERROR}
 
 @app.get("/image/download/{recipeId}/{imageId}", status_code=status.HTTP_200_OK)
 async def downloadFile(
@@ -662,10 +689,10 @@ async def deleteFile(
                 remove(imagePath)
                 if len(listdir(folderPath)) == 0:
                     rmdir(folderPath)
-                return {'result': True, 'status_code': status.HTTP_200_OK}
-            return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
-        return {'result': False, 'status_code': status.HTTP_403_FORBIDDEN}
-    return {'result': False, 'status_code': status.HTTP_404_NOT_FOUND}
+                return {'result': True, 'status_code': UpdateStatusCode.SUCCESS}
+            return {'result': False, 'status_code': UpdateStatusCode.OBJECT_NOT_FOUND}
+        return {'result': False, 'status_code': UpdateStatusCode.NOT_AUTHORIZED}
+    return {'result': False, 'status_code': UpdateStatusCode.OBJECT_NOT_FOUND}
 
 @app.get("/apk/get_latest", status_code=status.HTTP_200_OK, response_model=str|None)
 async def get_latest():
