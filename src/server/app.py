@@ -397,7 +397,7 @@ async def update_user_me(
     user = getUserById(id)
     if not user:
         return {'result': False, 'status_code': UpdateStatusCode.OBJECT_NOT_FOUND}
-    if requestDate and user.lastUpdate > requestDate:
+    if requestDate and user.lastUpdate.astimezone(timezone.utc) > requestDate:
         return {'result': False, 'status_code': UpdateStatusCode.CONFLICT}
     
     ack, lastUpdate = updateUser(str(current_user.id), data)
@@ -471,7 +471,7 @@ async def update_book(
         return {'result': False, 'status_code': UpdateStatusCode.OBJECT_NOT_FOUND}
     if str(current_user.id) in book.users:
         if book.access[str(current_user.id)] >= AccessLevel.WRITE:
-            if requestDate and book.lastUpdate > requestDate:
+            if requestDate and book.lastUpdate.astimezone(timezone.utc) > requestDate:
                 return {'result': False, 'status_code': UpdateStatusCode.CONFLICT}
             ack, lastUpdate = updateBookSet(id, data)
             if ack:

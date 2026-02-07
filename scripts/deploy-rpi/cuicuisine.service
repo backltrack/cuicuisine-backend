@@ -3,7 +3,7 @@ Description=Cuicuisine server
 After=network.target docker.service
 
 [Service]
-ExecStart=/bin/bash /home/sucre/cuicuisine-backend/scripts/start-docker-rpi.sh
+ExecStart=/bin/bash /server/cuicuisine-backend/scripts/start-docker-rpi.sh
 Type=simple
 Restart=always
 
