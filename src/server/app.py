@@ -85,6 +85,8 @@ class InvalidPasswordException(Exception):
 async def http_exception_handler(request, exc):
     if exc.status_code == status.HTTP_401_UNAUTHORIZED:
         return JSONResponse(({"error": "unauthorized_client", "error_description": exc.detail}), status_code=exc.status_code)
+    elif exc.status_code == status.HTTP_404_NOT_FOUND:
+        return JSONResponse(({"error": "not_found", "error_description": exc.detail}), status_code=exc.status_code)
     else:
         return exc
 
