@@ -314,6 +314,16 @@ async def add_change(
         return addChange(changeId=json_data['changeId'], objectType=json_data['objectType'], operationType=int(json_data['operationType']), objectId=json_data['objectId'])
     return False
 
+@app.get("/change/newer_count/{id}", response_model=int|None)
+async def get_newer_changes_count(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    id: str
+):
+    result, changes = getChangesAfter(changeId=id, userId=str(current_user.id))
+    if result:
+        return len(changes)
+    return None
+
 @app.get("/change/get/{id}", response_model=dict)
 async def get_changes(
     current_user: Annotated[User, Depends(get_current_active_user)],
