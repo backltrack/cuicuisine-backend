@@ -72,6 +72,7 @@ class Book(BaseModel):
     recipeIds: list[str] = []
     users: list[str]
     access: dict[str, int] ## to change
+    tags: list[str] = []
     lastUpdate: datetime
 
 class Ingredient(BaseModel):
@@ -79,12 +80,15 @@ class Ingredient(BaseModel):
     quantity: float
     unit: str
     density: float | None = 0
+    category: str | None = None
 
 class Tag(BaseModel):
+    id: str
     name: str
-    index: int
+    category: str | None = None
 
 class RecipeStep(BaseModel):
+    name: str | None = None
     step: str
     time: int
 
@@ -181,6 +185,7 @@ class UpdateBookRequest(BaseModel, RequestBase):
         recipeIds: list[str]|None = None
         users: list[str]|None = None
         access: dict[str, int]|None = None
+        tags: list[str]|None = None
         requestDate: str|None = None
 
 class AddRecipeRequestForm:

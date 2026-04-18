@@ -44,7 +44,6 @@ else:
 log = DebugLog(log_level=level) if getenv("ENV") == "production" else DebugLog(log_dir=getenv("LOGDIRPATH"), log_level=level)
 log.info("Starting Cuicuisine server")
 log.info(f"Log level set to: {level}")
-log.debug("This is a debug log")
 
 # to get a string like this run:
 # openssl rand -hex 32
