@@ -66,15 +66,6 @@ class DbUser(User):
     disabled: bool = False
     hashed_password: str
 
-class Book(BaseModel):
-    id: ObjectIdField = None
-    name: str
-    recipeIds: list[str] = []
-    users: list[str]
-    access: dict[str, int] ## to change
-    tags: list[str] = []
-    lastUpdate: datetime
-
 class Ingredient(BaseModel):
     name: str
     quantity: float
@@ -86,6 +77,15 @@ class Tag(BaseModel):
     id: str
     name: str
     category: str | None = None
+
+class Book(BaseModel):
+    id: ObjectIdField = None
+    name: str
+    recipeIds: list[str] = []
+    users: list[str]
+    access: dict[str, int] ## to change
+    tags: list[Tag] = []
+    lastUpdate: datetime
 
 class RecipeStep(BaseModel):
     name: str | None = None
@@ -185,8 +185,14 @@ class UpdateBookRequest(BaseModel, RequestBase):
         recipeIds: list[str]|None = None
         users: list[str]|None = None
         access: dict[str, int]|None = None
-        tags: list[str]|None = None
+        tags: list[Tag]|None = None
         requestDate: str|None = None
+
+        def dump(self, exclude_empty=True):
+            data = super().dump(exclude_empty)
+            if 'tags' in data:
+                data['tags'] = [tag.model_dump() for tag in data['tags']]
+            return data
 
 class AddRecipeRequestForm:
     def __init__(
