@@ -37,10 +37,14 @@ services:
   server-database:
     image: mongo:${MONGOVERS}
     container_name: mongodb
+    command:
+      - '-f'
+      - '/etc/mongodb.conf'
     ports:
       - 27018:27017
     volumes:
-      - ${DB}:/data/db:rw # Persist MongoDB data
+      - ${DB}/data:/data/db:rw # Persist MongoDB data
+      - ${DB}/config/mongodb.conf:/etc/mongodb.conf:ro # Mount MongoDB configuration file
   
   # certbot:
   #   image: certbot/certbot:latest

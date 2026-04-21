@@ -1,4 +1,5 @@
 #! /bin/bash
+# Executed from project root
 
 # Send IP to duckdns
 echo url="https://www.duckdns.org/update?domains=mycuicuisine&token=7916ea28-fc78-4a68-9959-acf29d88a04a&ip=" | curl -k -o ./duck.log -K -
@@ -35,6 +36,15 @@ fi
 if [ ! -d "$db" ]; then
     mkdir "$db"
     chmod -R 777 $db
+    if [ ! -d "$db/config" ]; then
+        mkdir "$db/config"
+        chmod -R 777 $db/config
+        cp ./config/mongodb.conf $db/config/mongodb.conf
+    fi
+    if [ ! -d "$db/data" ]; then
+        mkdir "$db/data"
+        chmod -R 777 $db/data
+    fi
 fi
 
 if [ ! -d "$logdirpath" ]; then

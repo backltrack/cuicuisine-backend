@@ -184,7 +184,7 @@ def addBook(id: ObjectId, name: str, recipeIds: list[str], users: list[str], acc
             lastUpdate=currentTime
         ))
         print("Book added:", result.acknowledged)
-        return True, currentTime
+        return result.acknowledged, currentTime
     except Exception as e:
         print(e)
         return False, currentTime
