@@ -37,9 +37,7 @@ services:
   server-database:
     image: mongo:${MONGOVERS}
     container_name: mongodb
-    command:
-      - '-f'
-      - '/etc/mongodb.conf/mongodb.conf'
+    command: ["mongod", "--config", "/etc/mongodb.conf/mongodb.conf"]
     ports:
       - 27018:27017
     volumes:

@@ -40,8 +40,11 @@ fi
 if [ ! -d "$db/config" ]; then
     mkdir "$db/config"
     chmod -R 777 $db/config
-    cp ./config/mongodb.conf $db/config/mongodb.conf
 fi
+if [ ! -f "$db/config/mongodb.conf" ]; then
+    cp ../config/mongodb.conf $db/config/mongodb.conf
+fi
+
 if [ ! -d "$db/data" ]; then
     mkdir "$db/data"
     chmod -R 777 $db/data
