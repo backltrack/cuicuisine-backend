@@ -1,6 +1,8 @@
 #! /bin/bash
 # Executed from project root
 
+cd "$(dirname "$0")"
+
 root="$HOME/cuicuisine-data"
 storage="$root/storage"
 db="$root/db"
