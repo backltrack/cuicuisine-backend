@@ -67,11 +67,16 @@ class DbUser(User):
     hashed_password: str
 
 class Ingredient(BaseModel):
-    name: str
+    bookIngredientId: str
     quantity: float
+    unitOverride: str | None = None
+    densityOverride: float | None = None
+
+class BookIngredient(BaseModel):
+    id: str
+    name: str
     unit: str
     density: float | None = 0
-    category: str | None = None
 
 class Tag(BaseModel):
     id: str
@@ -84,6 +89,7 @@ class Book(BaseModel):
     recipeIds: list[str] = []
     users: list[str]
     access: dict[str, int] ## to change
+    bookIngredients: list[BookIngredient] = []
     tags: list[Tag] = []
     lastUpdate: datetime
 
