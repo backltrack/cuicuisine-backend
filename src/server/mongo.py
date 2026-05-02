@@ -172,7 +172,7 @@ def getBookById(id: str) -> Book:
     if isinstance(book, Book):
         return book
     
-def addBook(id: ObjectId, name: str, recipeIds: list[str], users: list[str], access: dict[str, int]):
+def addBook(id: ObjectId, name: str, recipeIds: list[str], users: list[str], access: dict[str, int], tags: list[str]|None = None, bookIngredients: list[BookIngredient]|None = None):
     currentTime = datetime.now(timezone.utc)
     try:
         result = books_collection.save(Book(
@@ -181,6 +181,8 @@ def addBook(id: ObjectId, name: str, recipeIds: list[str], users: list[str], acc
             recipeIds=recipeIds,
             users=users,
             access=access,
+            tags=tags,
+            bookIngredients=bookIngredients,
             lastUpdate=currentTime
         ))
         print("Book added:", result.acknowledged)

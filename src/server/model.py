@@ -180,10 +180,21 @@ class AddBookRequestForm:
         name: Annotated[
             str,
             Form()
+        ],
+        tags: Annotated[
+            Tag,
+            Form()
+        ],
+        bookIngredients: Annotated[
+            BookIngredient,
+            Form()
         ]
     ):
         self.id = ObjectId(id)
         self.name = name
+        self.tags = tags
+        self.bookIngredients = bookIngredients
+
 
 class UpdateBookRequest(BaseModel, RequestBase):
         id: str
@@ -192,12 +203,15 @@ class UpdateBookRequest(BaseModel, RequestBase):
         users: list[str]|None = None
         access: dict[str, int]|None = None
         tags: list[Tag]|None = None
+        bookIngredients: list[BookIngredient]|None = None
         requestDate: str|None = None
 
         def dump(self, exclude_empty=True):
             data = super().dump(exclude_empty)
             if 'tags' in data:
                 data['tags'] = [tag.model_dump() for tag in data['tags']]
+            if 'bookIngredients' in data:
+                data['bookIngredients'] = [ingredient.model_dump() for ingredient in data['bookIngredients']]
             return data
 
 class AddRecipeRequestForm:

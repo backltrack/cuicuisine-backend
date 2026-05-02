@@ -513,7 +513,9 @@ async def create_book(
         name=form_data.name,
         recipeIds=[],
         users=[str(current_user.id)],
-        access={str(current_user.id): 2}
+        access={str(current_user.id): 2},
+        tags=form_data.tags,
+        bookIngredients=form_data.bookIngredients
     )
     if not ack:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server error")
