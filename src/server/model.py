@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import json
 from typing import Annotated, Union
 from typing_extensions import Annotated
 from fastapi.param_functions import Form, Doc
@@ -173,27 +174,15 @@ class AddBookRequestForm:
     def __init__(
         self,
         *,
-        id: Annotated[
-            str,
-            Form()
-        ],
-        name: Annotated[
-            str,
-            Form()
-        ],
-        tags: Annotated[
-            Tag,
-            Form()
-        ],
-        bookIngredients: Annotated[
-            BookIngredient,
-            Form()
-        ]
+        id: Annotated[str, Form()],
+        name: Annotated[str, Form()],
+        tags: Annotated[str, Form()] = "[]",
+        bookIngredients: Annotated[str, Form()] = "[]"
     ):
         self.id = ObjectId(id)
         self.name = name
-        self.tags = tags
-        self.bookIngredients = bookIngredients
+        self.tags = [Tag(**t) for t in json.loads(tags)]
+        self.bookIngredients = [BookIngredient(**bi) for bi in json.loads(bookIngredients)]
 
 
 class UpdateBookRequest(BaseModel, RequestBase):
