@@ -452,7 +452,7 @@ async def get_book_usernames(
     book: Book = getBookById(id)
     print("Get users from book:", book)
     if book:
-        if str(current_user.id) in book.users and book.access[str(current_user.id)] == AccessLevel.OWN:
+        if str(current_user.id) in book.users and book.access[str(current_user.id)] >= AccessLevel.READ:
             print("User is owner, fetching usernames")
             usernames = {}
             for userId in book.users:
