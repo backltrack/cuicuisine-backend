@@ -23,6 +23,8 @@ services:
       - ENV=production
       - LOGLEVEL=${LOGLEVEL}
       - LOGDIRPATH=${LOGDIRPATH}
+      - GMAIL_ADDRESS=${GMAIL_ADDRESS}
+      - GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD}
     volumes:
       - ${STORAGE}:/app/storage/:rw
       - ${LOGDIRPATH}:/app/logs/:rw

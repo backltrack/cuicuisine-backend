@@ -2,8 +2,6 @@
 /tests/*
 /storage/*
 /logs/*
-credentials.json
-token.pickle
 private_key.pem
 /tls/*
 .docker-env

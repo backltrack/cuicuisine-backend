@@ -8,7 +8,14 @@ echo url="https://www.duckdns.org/update?domains=mycuicuisine&token=7916ea28-fc7
 cd "$(dirname "$0")"
 git pull
 
-# SET ENV VARS
+# Load secrets from .env at project root
+if [ ! -f ../.env ]; then
+    echo "Error: .env file not found. Copy .env.example to .env and fill in your values."
+    exit 1
+fi
+source ../.env
+
+# SET ENV VARS
 root="/server/cuicuisine-data"
 storage="$root/storage"
 db="$root/db"
@@ -20,7 +27,9 @@ echo "STORAGE=$storage
 DB=$db
 MONGOVERS=$mongovers
 LOGLEVEL=$loglevel
-LOGDIRPATH=$logdirpath" > .docker-env
+LOGDIRPATH=$logdirpath
+GMAIL_ADDRESS=$GMAIL_ADDRESS
+GMAIL_APP_PASSWORD=$GMAIL_APP_PASSWORD" > .docker-env
 
 # Check if directories exist
 if [ ! -d "$root" ]; then
