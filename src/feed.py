@@ -7,104 +7,91 @@ from bson import ObjectId
 
 from os import path, listdir, mkdir
 from shutil import copy
-        
+
 user_map = {}
-book_map = {}
 recipe_map = {}
-
-def getUserInitials(oldUserId):
-    if oldUserId in user_map.keys():
-        userId = user_map[oldUserId]
-        user = getUserById(userId)
-        if user:
-            names = user.name.split(' ')
-            if len(names) > 1:
-                initials = names[0][0] + names[1][0]
-                return initials.upper()
-            elif len(names) > 0:
-                return names[0][0].upper()
-            else:
-                return ""
-
-
-def findRecipe(id, data):
-    for recipe in data['recipes']:
-        if recipe['id'] == id:
-            return recipe
-
-def findBook(id, data):
-    for recipe in data['books']:
-        if recipe['id'] == id:
-            return recipe
 
 with open('../tests/extract_recettes.json', 'r', encoding='utf-8') as f:
     data = json.load(f)
 
+recipe_index = {r['id']: r for r in data['recipes']}
+
+# Users
 for user in data['users']:
     if not getUserByEmail(user['email']):
         newuser = addUser(user['name'], user['email'], get_password_hash("ToChange01"))
         user_map[user['id']] = newuser.id
 
+# Recipes
 for recipe in data['recipes']:
     _recipe = recipe.copy()
     oldId = _recipe.pop('id')
     currentId = ObjectId()
 
-    _variants = []
-    for variant in _recipe['variants']:
-        if variant['userUid'] in user_map.keys():
-            newVariant = {
-                'userId': str(user_map[variant['userUid']]),
-                'variant': variant['variant'],
-                'initials': getUserInitials(variant['userUid'])
-            }
-            _variants.append(newVariant)
-    _recipe['variants'] = _variants
-            
+    _recipe['recipeIngredients'] = [
+        {
+            'bookIngredientId': ri['bookIngredientId'],
+            'quantity': ri['quantity'],
+            'unitOverride': ri.get('unit'),
+            'densityOverride': ri.get('density'),
+        }
+        for ri in _recipe['recipeIngredients']
+    ]
+
+    _recipe['variants'] = [
+        {
+            'userId': str(user_map[v['userId']]),
+            'variant': v['variant'],
+            'initials': v['initials'],
+        }
+        for v in _recipe['variants']
+        if v['userId'] in user_map
+    ]
 
     addRecipe(id=currentId, name=_recipe['name'])
     updateRecipe(currentId, _recipe)
     recipe_map[oldId] = currentId
 
+# Books
 for book in data['books']:
-    access = {}
-    recipes = []
-    users = []
-    for userId in book['access'].keys():
-        if userId in user_map.keys():
-            access[str(user_map[userId])] = book['access'][userId]
-    for oldId in book['recipeUids']:
-        if oldId in recipe_map.keys():
-            recipes.append(str(recipe_map[oldId]))
-    for oldId in book['users']:
-        if oldId in user_map.keys():
-            users.append(str(user_map[oldId]))
-
+    access = {str(user_map[uid]): level for uid, level in book['access'].items() if uid in user_map}
+    recipes = [str(recipe_map[oid]) for oid in book['recipeIds'] if oid in recipe_map]
+    users = [str(user_map[uid]) for uid in book['users'] if uid in user_map]
 
     addBook(
         id=ObjectId(),
         name=book['name'],
         recipeIds=recipes,
         users=users,
-        access=access
+        access=access,
+        tags=book.get('tags', []),
+        bookIngredients=book.get('bookIngredients', []),
     )
 
-for oldId in recipe_map.keys():
-    p = f"../tests/images/{oldId}"
-    if path.exists(p):
-        local_images = listdir(p)
-        recipe_pictures = findRecipe(oldId, data)['pictures']
-        for recipe_pict in recipe_pictures:
-            if path.exists(path.join(p, recipe_pict)):
-                new_p = f"../storage/{recipe_map[oldId]}"
-                    
-                if not path.exists(new_p):
-                    mkdir(new_p)
-                copy(path.join(p, recipe_pict), path.join(new_p, recipe_pict))
-            else:
-                picts = recipe_pictures[:].remove(recipe_pict)
-                if not picts:
-                    picts = []
-                updateRecipe(recipe_map[oldId], {'pictures': picts})
+# Update favoriteRecipes for each user
+for user in data['users']:
+    if user['id'] in user_map:
+        mapped_favorites = [str(recipe_map[rid]) for rid in user.get('favoriteRecipes', []) if rid in recipe_map]
+        if mapped_favorites:
+            updateUser(str(user_map[user['id']]), {'favoriteRecipes': mapped_favorites})
 
+# Copy images
+for oldId, newId in recipe_map.items():
+    src_dir = f"../tests/images/{oldId}"
+    if not path.exists(src_dir):
+        continue
 
+    recipe_pictures = recipe_index[oldId]['pictures']
+    valid_pictures = []
+
+    for picture in recipe_pictures:
+        src_file = path.join(src_dir, picture)
+        if path.exists(src_file):
+            dst_dir = f"../storage/{newId}"
+            if not path.exists(dst_dir):
+                mkdir(dst_dir)
+            copy(src_file, path.join(dst_dir, picture))
+            valid_pictures.append(picture)
+
+    if len(valid_pictures) != len(recipe_pictures):
+        updateRecipe(newId, {'pictures': valid_pictures})
