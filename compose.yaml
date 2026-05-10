@@ -39,6 +39,8 @@ services:
   server-database:
     image: mongo:${MONGOVERS}
     container_name: mongodb
+    environment:
+      - GLIBC_TUNABLES=glibc.cpu.hwcaps=-SHSTK
     command: ["mongod", "--config", "/etc/mongodb.conf/mongodb.conf"]
     ports:
       - 27018:27017
