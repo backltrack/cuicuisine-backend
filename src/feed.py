@@ -1,17 +1,42 @@
 import json
+import os
 from server.mongo import *
 from server.model import *
-from server.app import get_password_hash
 
 from bson import ObjectId
+
+from passlib.context import CryptContext
 
 from os import path, listdir, mkdir
 from shutil import copy
 
+load_dotenv()
+
+# Input
+input_dir = os.getenv('INPUT_DIR')
+input_file = path.join(input_dir, 'extract_recettes.json')
+input_images_dir = path.join(input_dir, 'images')
+
+if not path.exists(input_file):
+    print(f"Input file {input_file} does not exist.")
+    exit(1)
+
+# Output
+output_images_dir = os.getenv('OUTPUT_DIR')
+
+if not path.exists(output_images_dir):
+    mkdir(output_images_dir)
+
+# Security
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
 user_map = {}
 recipe_map = {}
 
-with open('../tests/extract_recettes.json', 'r', encoding='utf-8') as f:
+with open(input_file, 'r', encoding='utf-8') as f:
     data = json.load(f)
 
 recipe_index = {r['id']: r for r in data['recipes']}
@@ -77,7 +102,7 @@ for user in data['users']:
 
 # Copy images
 for oldId, newId in recipe_map.items():
-    src_dir = f"../tests/images/{oldId}"
+    src_dir = path.join(input_images_dir, str(oldId))
     if not path.exists(src_dir):
         continue
 
@@ -87,7 +112,7 @@ for oldId, newId in recipe_map.items():
     for picture in recipe_pictures:
         src_file = path.join(src_dir, picture)
         if path.exists(src_file):
-            dst_dir = f"../storage/{newId}"
+            dst_dir = path.join(output_images_dir, str(newId))
             if not path.exists(dst_dir):
                 mkdir(dst_dir)
             copy(src_file, path.join(dst_dir, picture))

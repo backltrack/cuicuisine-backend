@@ -53,6 +53,11 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_SECONDES = 3600
 REFRESH_TOKEN_EXPIRE_DAYS = 365
 
+# Bump MINIMUM_APP_VERSION when shipping breaking API or model changes.
+# Bump API_VERSION on any breaking API change.
+MINIMUM_APP_VERSION = "0.1.0"
+API_VERSION = 1
+
 # Instantiate the FastAPI
 app = FastAPI()
 app.mount("/ui", StaticFiles(directory="static",html=True))
@@ -688,6 +693,11 @@ async def deleteFile(
     if len(listdir(folderPath)) == 0:
         rmdir(folderPath)
     return {'success': True}
+
+@app.get("/version", status_code=status.HTTP_200_OK)
+async def get_version():
+    """Return the minimum compatible app version and current API version. No auth required."""
+    return {"minimum_app_version": MINIMUM_APP_VERSION, "api_version": API_VERSION}
 
 @app.get("/apk/get_latest", status_code=status.HTTP_200_OK, response_model=str|None)
 async def get_latest():
