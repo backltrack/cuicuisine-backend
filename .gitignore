@@ -6,6 +6,7 @@
 private_key.pem
 /tls/*
 .docker-env
+*.zip
 
 .vscode
 

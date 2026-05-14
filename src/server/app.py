@@ -282,7 +282,8 @@ async def register_for_access_token(
         )
     try:
         pwd = decrypt_data(form_data.password)
-        user = addUser(name="test", email=email, password=get_password_hash(pwd))
+        default_name = email.split('@')[0] if '@' in email else email
+        user = addUser(name=default_name, email=email, password=get_password_hash(pwd))
 
         access_token, access_token_expiration_time = create_access_token(data={"sub": str(user.id)})
         refresh_token, refresh_token_expiration_time = create_refresh_token(data={"sub": str(user.id)})
