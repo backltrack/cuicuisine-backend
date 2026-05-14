@@ -706,6 +706,16 @@ async def get_latest():
         print(file)
         if file.endswith(".apk"):
             return "/downloads/" + file
-    # if apk_path:
-    #     return FileResponse(path=apk_path, media_type='application/vnd.android.package-archive', filename="cuicuisine.apk")
-    # return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": "APK not found"})
+    return None
+
+@app.get("/apk/download", status_code=status.HTTP_200_OK)
+async def download_latest_apk():
+    """Download the latest APK with correct headers so browsers trigger a file download"""
+    for file in reversed(listdir("downloads/")):
+        if file.endswith(".apk"):
+            return FileResponse(
+                path=f"downloads/{file}",
+                media_type="application/vnd.android.package-archive",
+                filename="cuicuisine.apk",
+            )
+    raise HTTPException(status_code=404, detail="APK not found")
