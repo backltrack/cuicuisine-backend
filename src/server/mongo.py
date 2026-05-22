@@ -160,7 +160,7 @@ def deleteUser(id: str) -> bool:
 
 def getUserBooks(id:str):
     books = books_collection.find_by({"users": str(id)})
-    return books
+    return [b for b in books if b is not None]
 
 def getUserBooksId(id:str):
     books = getUserBooks(id)
