@@ -58,9 +58,10 @@ def getChangesAfter(changeId: str, userId: str):
             if change.objectId in userBookIds:
                 newUserChanges.append(change.model_dump())
         elif change.objectType == 'recipe':
-            if str(getRecipeBook(change.objectId).id) in userBookIds:
+            book = getRecipeBook(change.objectId)
+            if book and str(book.id) in userBookIds:
                 newUserChanges.append(change.model_dump())
-                    
+
     return True, newUserChanges
 
 def getLastUserChangeId(userId: str) -> str|None:
@@ -76,7 +77,8 @@ def getLastUserChangeId(userId: str) -> str|None:
             if change.objectId in userBookIds:
                 return change.changeId
         elif change.objectType == 'recipe':
-            if str(getRecipeBook(change.objectId).id) in userBookIds:
+            book = getRecipeBook(change.objectId)
+            if book and str(book.id) in userBookIds:
                 return change.changeId
         
 # RECOVERIES
