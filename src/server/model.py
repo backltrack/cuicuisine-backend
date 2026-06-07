@@ -99,9 +99,9 @@ class RecipeStep(BaseModel):
     step: str
     time: int
 
-class Variant(BaseModel):
+class Comment(BaseModel):
     userId: str
-    variant: str
+    comment: str
     initials: str
 
 class Recipe(BaseModel):
@@ -116,7 +116,7 @@ class Recipe(BaseModel):
     quantityType: str = "personnes"
     recipeIngredients: list[Ingredient] = []
     steps: list[RecipeStep] = []
-    variants: list[Variant] = []
+    comments: list[Comment] = []
     creationDate: datetime
     lastUpdate: datetime
 
@@ -133,6 +133,12 @@ class Recovery(BaseModel):
     email: str
     code: str
     expiration_date: datetime
+
+class Migration(BaseModel):
+    id: ObjectIdField = None
+    version: int
+    description: str
+    applied_at: datetime
 
 class UserRepository(AbstractRepository[DbUser]):
    class Meta:
@@ -153,6 +159,10 @@ class ChangeRepository(AbstractRepository[Change]):
 class RecoveryRepository(AbstractRepository[Recovery]):
     class Meta:
         collection_name = 'recoveries'
+
+class MigrationRepository(AbstractRepository[Migration]):
+    class Meta:
+        collection_name = 'migrations'
 
 class UpdateUserRequest(BaseModel, RequestBase):
     id: str
@@ -235,7 +245,7 @@ class UpdateRecipeRequest(BaseModel, RequestBase):
         quantityType: str|None = None,
         recipeIngredients: list[Ingredient]|None = None,
         steps: list[RecipeStep]|None = None,
-        variants: list[Variant]|None = None
+        comments: list[Comment]|None = None
         requestDate: str|None = None
 
 

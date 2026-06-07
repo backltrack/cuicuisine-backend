@@ -41,7 +41,7 @@ def test_add_recipe():
             'persons': 2,
             'recipeIngredients': [],
             'steps': [],
-            'variants': [],
+            'comments': [],
             'creationDate': str(datetime.now()),
             'lastUpdate': str(datetime.now())
             })
@@ -63,12 +63,12 @@ def test_update_recipe():
             'persons': 2,
             'recipeIngredients': [],
             'steps': [],
-            'variants': [],
+            'comments': [],
             'creationDate': str(datetime.now()),
             'lastUpdate': str(datetime.now())
             })
         
-recipe = Recipe(name= 'test-update', pictures= [], preparationTime= 10, cookingTime= 10, waitingTime= 10, tags= ['tag'], persons= 2, recipeIngredients= [], steps= [], variants= [], creationDate= datetime.now(), lastUpdate= datetime.now())
+recipe = Recipe(name= 'test-update', pictures= [], preparationTime= 10, cookingTime= 10, waitingTime= 10, tags= ['tag'], persons= 2, recipeIngredients= [], steps= [], comments= [], creationDate= datetime.now(), lastUpdate= datetime.now())
 recipe.id = "ba89c109-d727-458d-980c-28951179003f"
 
 #test_add_user()

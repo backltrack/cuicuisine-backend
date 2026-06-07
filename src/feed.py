@@ -63,13 +63,13 @@ for recipe in data['recipes']:
         for ri in _recipe['recipeIngredients']
     ]
 
-    _recipe['variants'] = [
+    _recipe['comments'] = [
         {
             'userId': str(user_map[v['userId']]),
-            'variant': v['variant'],
+            'comment': v['comment'],
             'initials': v['initials'],
         }
-        for v in _recipe['variants']
+        for v in _recipe['comments']
         if v['userId'] in user_map
     ]
 
