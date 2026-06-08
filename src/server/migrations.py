@@ -30,7 +30,7 @@ def migration_001(db: Database):
                     mapped['userId'] = v['user']
 
                 # comment text could be stored under different keys
-                mapped['comment'] = v.get('comment') or v.get('text') or v.get('body') or v.get('value')
+                mapped['comment'] = v.get('variant') or v.get('comment')
 
                 # initials
                 if 'initials' in v:
@@ -45,16 +45,31 @@ def migration_001(db: Database):
                 # primitive types -> store as comment text
                 new_comments.append({'comment': str(v)})
 
+        # Always update if document has legacy fields - either migrate comments,
+        # create an empty `comments` field when `variants` is an empty list,
+        # or just remove legacy fields.
+        update_ops = {'$unset': {}}
+
         if new_comments:
             merged = existing_comments + new_comments
-            update_ops = {'$set': {'comments': merged}, '$unset': {}}
-            # unset whichever legacy key exists
-            if 'variants' in doc:
-                update_ops['$unset']['variants'] = ""
-            if 'variant' in doc:
-                update_ops['$unset']['variant'] = ""
+            update_ops['$set'] = {'comments': merged}
+        else:
+            # If there were no new comments but `variants` was an explicit
+            # empty list, ensure we create an empty `comments` array so the
+            # field exists after migration.
+            if 'variants' in doc and isinstance(doc['variants'], list) and len(doc['variants']) == 0:
+                update_ops.setdefault('$set', {})['comments'] = existing_comments
 
+        # Always unset whichever legacy key exists
+        if 'variants' in doc:
+            update_ops['$unset']['variants'] = ""
+        if 'variant' in doc:
+            update_ops['$unset']['variant'] = ""
+
+        # Only perform the update if there's something to set/unset
+        if (update_ops.get('$set') or update_ops.get('$unset')):
             recipes.update_one({'_id': doc['_id']}, update_ops)
-            updated += 1
+        updated += 1
 
     print(f"Migration 001: updated {updated} recipes")
+
