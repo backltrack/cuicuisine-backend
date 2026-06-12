@@ -22,6 +22,7 @@ db="$root/db"
 logdirpath="$root/logs"
 mongovers="4.4.18"
 loglevel="DEBUG" #"INFO"
+domain="mycuicuisine.duckdns.org"
 
 echo "STORAGE=$storage
 DB=$db
@@ -29,7 +30,8 @@ MONGOVERS=$mongovers
 LOGLEVEL=$loglevel
 LOGDIRPATH=$logdirpath
 GMAIL_ADDRESS=$GMAIL_ADDRESS
-GMAIL_APP_PASSWORD=$GMAIL_APP_PASSWORD" > .docker-env
+GMAIL_APP_PASSWORD=$GMAIL_APP_PASSWORD
+DOMAIN=$domain" > .docker-env
 
 # Check if directories exist
 if [ ! -d "$root" ]; then

@@ -12,8 +12,8 @@ services:
     container_name: cuicuisine-server
     build:
       context: .
-    ports:
-      - 8000:8000
+    expose:
+      - 8000
     restart: always
     depends_on:
       - server-database
@@ -28,13 +28,27 @@ services:
     volumes:
       - ${STORAGE}:/app/storage/:rw
       - ${LOGDIRPATH}:/app/logs/:rw
-      # - server-data:/app/storage
-      # - ./certbot/www:/var/www/certbot/:ro
-      # - ./certbot/conf/:/app/ca/:ro
     develop:
       watch:
         - action: rebuild
           path: .
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: cuicuisine-caddy
+    restart: always
+    depends_on:
+      - server
+    ports:
+      - 80:80
+      - 443:443
+    environment:
+      - DOMAIN=${DOMAIN}
+      - ACME_EMAIL=${GMAIL_ADDRESS}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
 
   server-database:
     image: mongo:${MONGOVERS}
@@ -47,12 +61,7 @@ services:
     volumes:
       - ${DB}/data:/data/db:rw # Persist MongoDB data
       - ${DB}/config/:/etc/mongodb.conf/:ro # Mount MongoDB configuration file
-  
-  # certbot:
-  #   image: certbot/certbot:latest
-  #   container_name: certbot
-  #   volumes:
-  #     - ./certbot/www/:/var/www/certbot/:rw
-  #     - ./certbot/conf/:/etc/letsencrypt/:rw
 
-
+volumes:
+  caddy_data:
+  caddy_config:

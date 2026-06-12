@@ -48,4 +48,4 @@ COPY . .
 EXPOSE 8000
 
 # Run the application.
-CMD ["uvicorn", "--app-dir", "src", "server.app:app", "--host", "0.0.0.0", "--port", "8000", "--ssl-keyfile", "./tls/cuicuisine.key", "--ssl-certfile", "./tls/cuicuisine.crt", "--ssl-keyfile-password", "cuicuisine", "--http", "h11"]
+CMD ["uvicorn", "--app-dir", "src", "server.app:app", "--host", "0.0.0.0", "--port", "8000", "--http", "h11"]

@@ -16,6 +16,7 @@ db="$root/db"
 logdirpath="$root/logs"
 mongovers="latest"
 loglevel="DEBUG"
+domain="localhost"
 
 echo "STORAGE=$storage
 DB=$db
@@ -23,7 +24,8 @@ MONGOVERS=$mongovers
 LOGLEVEL=$loglevel
 LOGDIRPATH=$logdirpath
 GMAIL_ADDRESS=$GMAIL_ADDRESS
-GMAIL_APP_PASSWORD=$GMAIL_APP_PASSWORD" > .docker-env
+GMAIL_APP_PASSWORD=$GMAIL_APP_PASSWORD
+DOMAIN=$domain" > .docker-env
 
 if [ ! -d "$root" ]; then
     mkdir "$root"

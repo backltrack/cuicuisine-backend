@@ -50,11 +50,10 @@ This file is gitignored. It is the single source of truth for secrets — used b
 
 ### 4. TLS certificate
 
-For local development, generate a self-signed certificate:
+TLS is handled by a [Caddy](https://caddyserver.com/) reverse proxy in front of `uvicorn` (see `Caddyfile` and the `caddy` service in `compose.yaml`). `uvicorn` itself serves plain HTTP on the internal Docker network; no certificate files need to be generated manually.
 
-```bash
-./scripts/gen-self-signed-ssl.sh
-```
+- **Production (Raspberry Pi)**: `start-docker-rpi.sh` sets `DOMAIN=mycuicuisine.duckdns.org`. Caddy automatically requests and renews a trusted [Let's Encrypt](https://letsencrypt.org/) certificate for that domain. This requires ports `80` and `443` to be forwarded from your router to the Pi.
+- **Local Docker (Arch / desktop)**: `start-docker-arch.sh` sets `DOMAIN=localhost`. Caddy automatically issues a certificate from its own local CA for `localhost` (no public CA involved).
 
 ---
 
