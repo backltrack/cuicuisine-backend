@@ -25,6 +25,8 @@ services:
       - LOGDIRPATH=${LOGDIRPATH}
       - GMAIL_ADDRESS=${GMAIL_ADDRESS}
       - GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD}
+      - SECRET_KEY_ACCESS=${SECRET_KEY_ACCESS}
+      - SECRET_KEY_REFRESH=${SECRET_KEY_REFRESH}
     volumes:
       - ${STORAGE}:/app/storage/:rw
       - ${LOGDIRPATH}:/app/logs/:rw

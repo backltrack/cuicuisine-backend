@@ -22,7 +22,7 @@ import random, string
 from server.email_sender import GmailSender
 
 from datetime import timedelta, datetime, timezone
-from os import path, mkdir, remove, listdir, rmdir
+from os import path, mkdir, remove, listdir, rmdir, getenv
 
 from server.model import *
 from server.mongo import *
@@ -35,17 +35,17 @@ load_dotenv()
 log.info("Starting Cuicuisine server")
 log.info(f"Log level set to: {logging.getLevelName(log.logger.level)}")
 
-# to get a string like this run:
-# openssl rand -hex 32
-SECRET_KEY_ACCESS = "b8b24km3big8wx83fz49hswuwrsdzvw7db4c56upjwxvb89hukx342fnh5crnitv"
-SECRET_KEY_REFRESH = "ma4sh6puq5cyq7xgw798472pqdyshs2cxo4uj9xjsk62smq4epuyctzw929te735"
+# Set via the SECRET_KEY_ACCESS / SECRET_KEY_REFRESH env vars.
+# To generate a value: openssl rand -hex 32
+SECRET_KEY_ACCESS = getenv("SECRET_KEY_ACCESS")
+SECRET_KEY_REFRESH = getenv("SECRET_KEY_REFRESH")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_SECONDES = 3600
 REFRESH_TOKEN_EXPIRE_DAYS = 365
 
 # Bump MINIMUM_APP_VERSION when shipping breaking API or model changes.
 # Bump API_VERSION on any breaking API change.
-MINIMUM_APP_VERSION = "0.1.0"
+MINIMUM_APP_VERSION = "1.0.0"
 API_VERSION = 1
 
 # Lifespan: run migrations at startup using the recommended async context manager

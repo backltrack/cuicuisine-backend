@@ -44,7 +44,13 @@ Edit `.env`:
 ```
 GMAIL_ADDRESS=your_address@gmail.com
 GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
+
+# Generate with: openssl rand -hex 32
+SECRET_KEY_ACCESS=
+SECRET_KEY_REFRESH=
 ```
+
+`SECRET_KEY_ACCESS`/`SECRET_KEY_REFRESH` sign the JWT access/refresh tokens (`HS256`) — keep them secret and unique per deployment. Rotating either value invalidates all outstanding tokens, signing every logged-in user out.
 
 This file is gitignored. It is the single source of truth for secrets — used both by the local dev server and by the Docker start scripts to generate `.docker-env`.
 
@@ -72,3 +78,33 @@ TLS is handled by a [Caddy](https://caddyserver.com/) reverse proxy in front of 
 ```
 
 The Docker scripts read `.env`, combine secrets with platform-specific paths, and generate `.docker-env` before starting Docker Compose.
+
+## Updating the data model
+
+When you change the shape of stored documents (rename/remove/add a field, restructure a collection, etc.), two separate things need updating:
+
+### 1. Add a migration
+
+Write a migration function in `src/server/migrations.py` and register it with the next unused integer version:
+
+```python
+@register_migration(2, "Describe what this migration does")
+def migration_002(db: Database):
+    ...
+```
+
+Migrations run automatically at startup (`apply_migrations`, called from the `lifespan` handler in `src/server/app.py`) and are tracked in the `migrations` collection so each one only runs once. Version numbers here are just a sequential counter for migrations — unrelated to the app/API versions below.
+
+### 2. Bump the app/API version, if the change is breaking
+
+`src/server/app.py` defines two constants, exposed to clients via `GET /version`:
+
+```python
+MINIMUM_APP_VERSION = "0.1.0"  # bump when shipping breaking API or model changes
+API_VERSION = 1                # bump on any breaking API change
+```
+
+- Bump `API_VERSION` whenever the change breaks compatibility with how the API currently behaves (response shape changes, removed/renamed fields/endpoints, etc.).
+- Bump `MINIMUM_APP_VERSION` (to the next Flutter app version you're shipping) when older app builds would actually break against the new backend — this is the floor the client checks to force users to update.
+
+If the data model change is backward-compatible (e.g. adding an optional field), neither constant needs to change — just the migration.
