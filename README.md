@@ -59,13 +59,6 @@ TLS is handled by a [Caddy](https://caddyserver.com/) reverse proxy in front of 
 
 ## Running the server
 
-### Local development
-
-```bash
-./scripts/setup.sh          # create venv and install dependencies (first time)
-./scripts/start-dev-server.sh
-```
-
 ### Docker (Arch / desktop)
 
 ```bash
