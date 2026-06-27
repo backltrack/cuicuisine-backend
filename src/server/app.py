@@ -722,6 +722,6 @@ async def download_latest_apk():
             return FileResponse(
                 path=f"downloads/{file}",
                 media_type="application/vnd.android.package-archive",
-                filename="cuicuisine.apk",
+                filename=file,
             )
     raise HTTPException(status_code=404, detail="APK not found")
