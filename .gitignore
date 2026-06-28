@@ -8,6 +8,10 @@ private_key.pem
 .docker-env
 *.zip
 
+# Frontend build output, fetched via scripts/fetch-frontend-build.sh
+/static/*
+/downloads/*
+
 .vscode
 
 # Byte-compiled / optimized / DLL files

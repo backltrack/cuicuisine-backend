@@ -8,6 +8,9 @@ echo url="https://www.duckdns.org/update?domains=mycuicuisine&token=7916ea28-fc7
 cd "$(dirname "$0")"
 git pull
 
+# fetch latest frontend web build + apk from the cuicuisine repo's GitHub releases
+./fetch-frontend-build.sh
+
 # Load secrets from .env at project root
 if [ ! -f ../.env ]; then
     echo "Error: .env file not found. Copy .env.example to .env and fill in your values."
