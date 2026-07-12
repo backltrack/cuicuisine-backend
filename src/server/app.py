@@ -216,7 +216,6 @@ async def get_current_active_user(
 # routes
 @app.get("/")
 async def redirect_to_static(request: Request):
-    print(request.base_url)
     return RedirectResponse(request.base_url.path + "ui/", status_code=302)
 
 @app.get("/test_connexion", response_model=bool)
@@ -461,15 +460,13 @@ async def get_book_usernames(
     id: str
 ):
     book: Book = getBookById(id)
-    print("Get users from book:", book)
+
     if book:
         if str(current_user.id) in book.users and book.access[str(current_user.id)] >= AccessLevel.READ:
-            print("User is owner, fetching usernames")
             usernames = {}
             for userId in book.users:
                 user = getUserById(userId)
                 usernames[userId] = user.name
-            print("Usernames fetched:", usernames)
             return usernames
     
 
@@ -646,7 +643,6 @@ async def uploadFile(
     info: Annotated[ImageInfoForm, Depends()]
 ):
     log.debug(f"Uploading file: recipeId={info.recipeId}, imageId={info.imageId}, filename={file.filename}, content_type={file.content_type}")
-    print("test debug")
     if not path.exists("storage/"):
         mkdir("storage/")
     
@@ -709,7 +705,6 @@ async def get_version():
 async def get_latest():
     """Get the latest APK version"""
     for file in reversed(listdir("downloads/")):
-        print(file)
         if file.endswith(".apk"):
             return "/downloads/" + file
     return None

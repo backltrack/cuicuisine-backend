@@ -79,6 +79,68 @@ TLS is handled by a [Caddy](https://caddyserver.com/) reverse proxy in front of 
 
 The Docker scripts read `.env`, combine secrets with platform-specific paths, and generate `.docker-env` before starting Docker Compose.
 
+## Backup
+
+`scripts/backup.sh` backs up MongoDB and the user-uploaded files in `storage/`. It is already on the Pi after a `git pull` — it only needs a cron entry and, optionally, rclone for cloud upload.
+
+### What it does
+
+- Dumps MongoDB via `docker exec mongodump` (a safe logical dump while the server keeps running, unlike copying raw WiredTiger files).
+- Hashes the dump + `storage/` to detect whether anything changed since the last run — skips archiving if not.
+- Creates a `.tar.gz` named `cuicuisine-YYYY-MM-DD_HH-MM-SS.tar.gz` inside `/server/cuicuisine-backups/`.
+- Rotates archives automatically, keeping the 15 most recent.
+
+### Schedule (cron)
+
+```bash
+sudo crontab -e
+```
+
+Add this line to run nightly at 3 AM:
+
+```
+0 3 * * * /server/cuicuisine-backend/scripts/backup.sh >> /server/cuicuisine-backups/backup.log 2>&1
+```
+
+### Cloud upload (optional)
+
+Backups are local-only by default. To upload each new archive to cloud storage:
+
+**1. Install rclone**
+
+```bash
+sudo apt install rclone
+```
+
+**2. Configure a remote (one-time)**
+
+```bash
+rclone config
+```
+
+Recommended providers:
+
+| Provider | Why |
+|---|---|
+| Google Drive | Free 15 GB — good choice if you already have a Google account |
+| Backblaze B2 | ~$0.006/GB/month, effectively free at this scale, no Google dependency |
+
+Follow the interactive wizard (choose the provider, authenticate via browser). Name the remote something recognisable, e.g. `gdrive` or `b2`.
+
+**3. Enable upload in the script**
+
+Edit `RCLONE_DEST` at the top of `scripts/backup.sh`:
+
+```bash
+RCLONE_DEST="gdrive:cuicuisine-backups"   # Google Drive
+# or
+RCLONE_DEST="b2:cuicuisine-backups"       # Backblaze B2
+```
+
+From that point on, every new archive is uploaded automatically after being saved locally.
+
+---
+
 ## Updating the data model
 
 When you change the shape of stored documents (rename/remove/add a field, restructure a collection, etc.), two separate things need updating:
