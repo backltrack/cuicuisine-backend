@@ -632,9 +632,14 @@ async def delete_recipe_endpoint(
     access = getRecipeUserAccess(userId=current_user.id, recipeId=id)
     if access is None or access != AccessLevel.OWN:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
-    if not deleteRecipe(id):
+    success, book_id, book_last_update = deleteRecipe(id)
+    if not success:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server error")
-    return {'success': True}
+    response: dict = {'success': True}
+    if book_id and book_last_update:
+        response['bookId'] = book_id
+        response['bookLastUpdate'] = book_last_update.isoformat()
+    return response
 ## Images
 @app.post("/image/upload", status_code=status.HTTP_200_OK, response_model=dict)
 async def uploadFile(

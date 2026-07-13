@@ -298,12 +298,14 @@ def getRecipeUserAccess(userId: str, recipeId: str) -> int|None:
 def deleteRecipe(id: str):
     try:
         book = getRecipeBook(id)
+        book_id = str(book.id) if book else None
+        book_last_update = None
         if book:
-            updateBookPull(book.id, {'recipeIds': id})
+            _, book_last_update = updateBookPull(book.id, {'recipeIds': id})
         result = recipes_collection.delete_by_id(ObjectId(id))
         print("Recipe deleted:", result.acknowledged)
-        return result.acknowledged
+        return result.acknowledged, book_id, book_last_update
 
     except Exception as e:
         print(e)
-        return False
+        return False, None, None
