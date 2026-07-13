@@ -35,7 +35,7 @@ class RequestBase:
         to_exclude = []
         if exclude_empty:
             for key in data.keys():
-                if not data[key] or data[key] == (None,):
+                if data[key] is None or data[key] == (None,):
                     to_exclude.append(key)
             for key in to_exclude:
                 data.pop(key)
