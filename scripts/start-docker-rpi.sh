@@ -9,7 +9,7 @@ cd "$(dirname "$0")"
 git pull
 
 # fetch latest frontend web build + apk from the cuicuisine repo's GitHub releases
-./fetch-frontend-build.sh
+bash ./fetch-frontend-build.sh
 
 # Load secrets from .env at project root
 if [ ! -f ../.env ]; then
