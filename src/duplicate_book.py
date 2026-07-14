@@ -19,10 +19,16 @@ Usage:
 """
 
 import argparse
+import os
 from os import path, makedirs
 from shutil import copy
 
 from bson import ObjectId
+
+# MONGO_PORT is normally exported by the docker/feed startup scripts; default
+# to the host-mapped dev port (see scripts/start-feed-arch.sh) so this can be
+# run directly without a wrapper script.
+os.environ.setdefault('MONGO_PORT', '27018')
 
 from server.mongo import *
 from server.model import *

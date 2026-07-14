@@ -4,10 +4,10 @@
 export MONGO_PORT=27018
 export ENV="production"
 export LOGLEVEL="DEBUG"
-export LOGDIRPATH="$HOME/cuicuisine-data/logs"
+export LOGDIRPATH="/server/cuicuisine-data/logs"
 
 export INPUT_DIR="./imports"
-export OUTPUT_DIR="$HOME/cuicuisine-data/storage/"
+export OUTPUT_DIR="/server/cuicuisine-data/storage/"
 
 python src/feed.py
 
