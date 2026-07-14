@@ -45,7 +45,7 @@ REFRESH_TOKEN_EXPIRE_DAYS = 365
 
 # Bump MINIMUM_APP_VERSION when shipping breaking API or model changes.
 # Bump API_VERSION on any breaking API change.
-MINIMUM_APP_VERSION = "1.0.0"
+MINIMUM_APP_VERSION = "1.0.1"
 API_VERSION = 1
 
 # Lifespan: run migrations at startup using the recommended async context manager
